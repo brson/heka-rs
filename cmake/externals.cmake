@@ -25,4 +25,5 @@ externalproject_add(
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND ${CMAKE_COMMAND} -E copy libprotobuf.rlib "${PROJECT_PATH}/lib/" && ${CMAKE_COMMAND} -E make_directory "${PROJECT_PATH}/bin/" && ${CMAKE_COMMAND} -E copy protoc-gen-rust "${PROJECT_PATH}/bin/"
     UPDATE_COMMAND "" # comment out to enable updates
+    DEPENDS lua_sandbox
 )

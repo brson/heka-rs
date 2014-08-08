@@ -1,0 +1,10 @@
+62.195.113.219 - - [10/Jan/2014:15:01:47 +0000] "POST /v1/recovery_email/verify_code HTTP/1.1" 200 22 "https://accounts.dev.lcip.org/v1/verify_email?uid=9b6e44b8e67a4647bfe13595c06d2f9b&code=b4bf632f" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:29.0) Gecko/20100101 Firefox/29.0" "-"
+62.195.113.219 - - [10/Jan/2014:15:01:49 +0000] "GET /v1/recovery_email/status HTTP/1.1" 200 82 "-" "Mozilla/5.0 (Mobile; rv:29.0) Gecko/29.0 Firefox/29.0" "-"
+62.195.113.219 - - [10/Jan/2014:15:04:10 +0000] "POST /v1/session/destroy HTTP/1.1" 200 37 "-" "Mozilla/5.0 (Mobile; rv:29.0) Gecko/29.0 Firefox/29.0" "-"
+62.195.113.219 - - [10/Jan/2014:15:04:38 +0000] "POST /v1/auth/start HTTP/1.1" 200 588 "-" "Mozilla/5.0 (Mobile; rv:29.0) Gecko/29.0 Firefox/29.0" "-"
+54.224.179.251 - - [10/Jan/2014:15:04:54 +0000] "POST /v1/auth/start HTTP/1.1" 200 932 "-" "-" "-"
+54.224.179.251 - - [10/Jan/2014:15:04:55 +0000] "POST /v1/auth/finish HTTP/1.1" 200 141 "-" "-" "-"
+54.224.179.251 - - [10/Jan/2014:15:04:55 +0000] "POST /v1/session/create HTTP/1.1" 200 274 "-" "-" "-"
+62.195.113.219 - - [10/Jan/2014:15:04:55 +0000] "POST /v1/raw_password/session/create HTTP/1.1" 200 133 "-" "Mozilla/5.0 (Mobile; rv:29.0) Gecko/29.0 Firefox/29.0" "-"
+62.195.113.219 - - [10/Jan/2014:15:04:56 +0000] "GET /v1/recovery_email/status HTTP/1.1" 200 82 "-" "Mozilla/5.0 (Mobile; rv:29.0) Gecko/29.0 Firefox/29.0" "-"
+bogus line

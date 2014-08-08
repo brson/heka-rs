@@ -93,15 +93,15 @@ impl LuaSandbox {
         }
     }
 
-    pub fn process_message(&mut self, msg: &message::HekaMessage) -> c_int {
+    pub fn process_message(&mut self, msg: message::HekaMessage) -> (c_int, message::HekaMessage) {
     	let func_name = "process_message";
         unsafe {
             if self.lsb == std::ptr::mut_null() {
-                return 1;
+                return (1, msg);
             }
     		let lua = lsb_get_lua(self.lsb);
     		if lua == std::ptr::mut_null() {
-    			return 1;
+    			return (1, msg);
     		}
 
     		let mut r: c_int = 0;
@@ -110,30 +110,29 @@ impl LuaSandbox {
     		if r != 0 {
     			let err = format!("{}() function was not found", func_name);
     			err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
-    			return 1;
+    			return (1, msg);
     		}
 
-	        self.msg = Some(msg.clone()); // ideally it should be borrowed but having issues with the lifetime
+                assert!(self.msg.is_none());
+	        self.msg = Some(msg);
     		if lua_pcall(lua, 0, 1, 0) != 0 {
     			let mut len: size_t = 0;
     			let err = format!("{}() {}", func_name,  std::str::raw::from_c_str(lua_tolstring(lua, -1, &mut len)));
     			err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
-	            self.msg.take_unwrap();
-    			return 1;
+    			return (1, self.msg.take_unwrap());
     		}
-            self.msg.take_unwrap();
 
     		if lua_isnumber(lua, 1) == 0  {
     			let err = format!("{}() must return a single numeric value", func_name);
     			err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
-    			return 1;
+    			return (1, self.msg.take_unwrap());
     		}
 
     		let status = lua_tointeger(lua, 1);
     		lua_settop(lua, -2);
     		lsb_pcall_teardown(self. lsb);
 
-    		return status;
+    		return (status, self.msg.take_unwrap());
     	}
     }
 

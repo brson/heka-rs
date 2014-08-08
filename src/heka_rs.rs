@@ -15,7 +15,7 @@ mod sandbox;
 fn main() {
 	let mut count = 0u;
     let mut sb = sandbox::LuaSandbox::new("../test/nginx_access.lua".as_bytes(), "heka_rs/modules".as_bytes(), 8*1024*1024, 1000000, 1024*63);
-    let mut m = message::HekaMessage::new();
+    let mut m = Some(message::HekaMessage::new());
 
     let r = sb.init("".as_bytes());
     if r != 0 {
@@ -25,17 +25,18 @@ fn main() {
 	let mut file = BufferedReader::new(File::open(&path));
 	for line in file.lines() {
 		count = count + 1;
-		m.set_payload(line.unwrap());
+		m.get_mut_ref().set_payload(line.unwrap());
         // todo what we really want is const reference passed to process_message 
         // but the sandbox has to hold it outside the scope of process_message
         // for the callbacks to access.  It is unclear how I can specify
         // the lifetime to make the compiler happy (so it is cloned for now)
-		let rc = sb.process_message(&m);
+		let (rc, mm) = sb.process_message(m.take_unwrap());
+                m = Some(mm);
 		if rc > 0 {
 			println!("process message failed {}", rc);
 			break;
         } else if rc == -1 {
-			println!("process message failed parsing line {}: {}", count, m.get_payload());
+			println!("process message failed parsing line {}: {}", count, m.get_mut_ref().get_payload());
         }
 	}
 

@@ -23,7 +23,6 @@ externalproject_add(
     BINARY_DIR "${CMAKE_BINARY_DIR}/ep_base/Source/rust-protobuf/src"
     BUILD_COMMAND ./rebuild.sh
     CONFIGURE_COMMAND ""
-    INSTALL_COMMAND ${CMAKE_COMMAND} -E copy libprotobuf.rlib "${PROJECT_PATH}/lib/" && ${CMAKE_COMMAND} -E make_directory "${PROJECT_PATH}/bin/" && ${CMAKE_COMMAND} -E copy protoc-gen-rust "${PROJECT_PATH}/bin/"
+    INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_PATH}/lib/"&& ${CMAKE_COMMAND} -E make_directory "${PROJECT_PATH}/bin/" && ${CMAKE_COMMAND} -E copy libprotobuf.rlib "${PROJECT_PATH}/lib/" && ${CMAKE_COMMAND} -E copy protoc-gen-rust "${PROJECT_PATH}/bin/"
     UPDATE_COMMAND "" # comment out to enable updates
-    DEPENDS lua_sandbox
 )

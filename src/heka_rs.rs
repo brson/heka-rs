@@ -26,10 +26,6 @@ fn main() {
     for line in file.lines() {
         count = count + 1;
         m.get_mut_ref().set_payload(line.unwrap());
-        // todo what we really want is const reference passed to process_message
-        // but the sandbox has to hold it outside the scope of process_message
-        // for the callbacks to access.  It is unclear how I can specify
-        // the lifetime to make the compiler happy (so it is cloned for now)
         let (rc, mm) = sb.process_message(m.take_unwrap());
                 m = Some(mm);
         if rc > 0 {

@@ -48,10 +48,10 @@ pub struct LuaSandbox {
 
 impl LuaSandbox {
     pub fn new(lua_file: &[u8],
-    require_path: &[u8],
-    memory_limit: c_uint,
-    instruction_limit: c_uint,
-    output_limit: c_uint) -> Box<LuaSandbox> {
+               require_path: &[u8],
+               memory_limit: c_uint,
+               instruction_limit: c_uint,
+               output_limit: c_uint) -> Box<LuaSandbox> {
         unsafe {
             let mut s = box LuaSandbox{msg: None, lsb: std::ptr::mut_null()};
             // Convert our owned box into an unsafe pointer, making

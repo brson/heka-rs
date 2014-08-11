@@ -54,9 +54,17 @@ impl LuaSandbox {
     output_limit: c_uint) -> Box<LuaSandbox> {
         unsafe {
             let mut s = box LuaSandbox{msg: None, lsb: std::ptr::mut_null()};
+            // Convert our owned box into an unsafe pointer, making
+            // sure that we're passing a pointer into the heap to
+            // lsb_create. The way this stores a mutable unsafe
+            // pointer to somebody else's owned box is pretty sketchy
+            // and we're going to have to be careful not to invoke
+            // undefined behavior. This can probably be restructured
+            // so that lsb owns whatever data it needs.
+            let unsafe_s = &mut *s as *mut LuaSandbox as *mut c_void;
             lua_file.with_c_str(|lf| {
                 require_path.with_c_str(|rp| {
-                s.lsb = lsb_create(&s, lf, rp, memory_limit, instruction_limit, output_limit);
+                s.lsb = lsb_create(unsafe_s, lf, rp, memory_limit, instruction_limit, output_limit);
                 });
             });
             return s;
@@ -225,7 +233,7 @@ impl LuaSandbox {
 #[link(name = "lpeg", kind = "static")]
 #[link(name = "lua", kind = "static")]
 extern "C" {
-fn lsb_create(parent: *const Box<LuaSandbox>,
+fn lsb_create(parent: *mut c_void,
               lua_file: *const c_char,
               require_path: *const c_char,
               memory_limit: c_uint,
@@ -235,7 +243,7 @@ fn lsb_init(lsb: *mut LSB, state_file: *const c_char) -> c_int;
 fn lsb_add_function(lsb: *mut LSB, func: extern "C" fn(*mut LUA) -> c_int, func_name: *const c_char);
 fn lsb_get_error(lsb: *mut LSB) -> *const c_char;
 fn lsb_get_lua(lsb: *mut LSB) -> *mut LUA;
-fn lsb_get_parent(lsb: *mut LSB) -> *const c_void;
+fn lsb_get_parent(lsb: *mut LSB) -> *mut c_void;
 fn lsb_pcall_setup(lsb: *mut LSB, func_name: *const c_char) -> c_int;
 fn lsb_pcall_teardown(lsb: *mut LSB);
 fn lsb_output_userdata(lsb: *mut LSB, index: c_int, append: c_int) -> *const c_char;
@@ -343,11 +351,10 @@ extern fn read_message(lua: *mut LUA) -> c_int {
         }
 
         let lsb = luserdata as *mut LSB;
-        let sandbox = lsb_get_parent(lsb) as *mut Box<LuaSandbox>;
-        if (*sandbox).msg.is_none() {
-            lua_pushnil(lua);
-            return 1;
-        }
+        let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+
+        assert!((*sandbox).msg.is_some());
+
         let msg = (*sandbox).msg.get_ref();
 
         let n = lua_gettop(lua);

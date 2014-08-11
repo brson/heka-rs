@@ -1,7 +1,10 @@
 extern crate std;
 extern crate protobuf; // depend on rust-protobuf runtime
 extern crate libc;
+
 use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
+use std::any::Any;
+use std::collections::HashMap;
 
 use message;
 
@@ -39,11 +42,16 @@ pub enum lsb_usage_stat {
   STAT_MAX
 }
 
+struct SandboxConfig {
+    config: HashMap<String, Box<Any>>
+}
+
 pub enum LSB {}
 pub enum LUA {}
 pub struct LuaSandbox {
     msg: std::option::Option<message::HekaMessage>,
     lsb: *mut LSB,
+    config: SandboxConfig
 }
 
 impl LuaSandbox {
@@ -53,7 +61,15 @@ impl LuaSandbox {
                instruction_limit: c_uint,
                output_limit: c_uint) -> Box<LuaSandbox> {
         unsafe {
-            let mut s = box LuaSandbox{msg: None, lsb: std::ptr::mut_null()};
+            let cfg = SandboxConfig {
+                config: HashMap::new()
+            };
+
+            let mut s = box LuaSandbox{
+                msg: None,
+                lsb: std::ptr::mut_null(),
+                config: cfg
+            };
             // Convert our owned box into an unsafe pointer, making
             // sure that we're passing a pointer into the heap to
             // lsb_create. The way this stores a mutable unsafe

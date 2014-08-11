@@ -11,6 +11,7 @@ set(CPACK_PACKAGE_VERSION_PATCH 1)
 
 set(PROJECT_PATH "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+include(CTest)
 include(externals)
 find_package(Rust 0.12.0 REQUIRED)
 find_package(Protobuf 2.3 QUIET)
@@ -26,3 +27,9 @@ COMMENT "Built ${MESSAGE_PROTO_OUT}"
 add_custom_target(heka_rs ALL
 ${RUST_EXECUTABLE} -O -L "${PROJECT_PATH}/lib" -o heka_test "${CMAKE_SOURCE_DIR}/src/heka_rs.rs"
 DEPENDS lua_sandbox rust-protobuf ${MESSAGE_PROTO_OUT})
+
+add_custom_target(unit_tests ALL
+${RUST_EXECUTABLE} -L "${PROJECT_PATH}/lib" -o unit_tests --test "${CMAKE_SOURCE_DIR}/src/heka_rs.rs"
+DEPENDS heka_rs)
+
+add_test(unit_tests unit_tests)

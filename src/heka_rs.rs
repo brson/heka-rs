@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
+extern crate std;
 extern crate protobuf; // depend on rust-protobuf runtime
 extern crate libc;
 
@@ -27,7 +28,7 @@ fn main() {
         count = count + 1;
         m.get_mut_ref().set_payload(line.unwrap());
         let (rc, mm) = sb.process_message(m.take_unwrap());
-                m = Some(mm);
+        m = Some(mm);
         if rc > 0 {
             println!("process message failed {}", rc);
             break;

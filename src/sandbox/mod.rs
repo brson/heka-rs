@@ -3,8 +3,9 @@ extern crate protobuf; // depend on rust-protobuf runtime
 extern crate libc;
 
 use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
-use std::any::Any;
+use std::any::{Any, AnyRefExt};
 use std::collections::HashMap;
+use std::c_str::CString;
 
 use message;
 
@@ -103,6 +104,7 @@ impl LuaSandbox {
             "inject_message".with_c_str(|f| {lsb_add_function(self.lsb, inject_message, f);});
             "inject_payload".with_c_str(|f| {lsb_add_function(self.lsb, inject_payload, f);});
             "read_message".with_c_str(|f| {lsb_add_function(self.lsb, read_message, f);});
+            "read_config".with_c_str(|f| {lsb_add_function(self.lsb, read_config, f);});
 
             let mut r: c_int = 0;
             state_file.with_c_str(|sf| {r = lsb_init(self.lsb, sf);}) ;
@@ -280,6 +282,7 @@ fn lua_tonumber(lua: *mut LUA, index: c_int) -> c_double;
 fn lua_tolstring(lua: *mut LUA, index: c_int, len: *mut size_t) -> *const c_char;
 fn lua_pushinteger(lua: *mut LUA, ns: c_int);
 fn lua_pushnumber(lua: *mut LUA, ns: c_double);
+fn lua_pushboolean(lua: *mut LUA, b: c_int);
 fn lua_pushlstring(lua: *mut LUA, s: *const c_char, len: size_t);
 fn lua_pushnil(lua: *mut LUA);
 fn lua_gc(lua: *mut LUA, what: c_int, data: c_int) -> c_int;
@@ -368,6 +371,7 @@ extern fn read_message(lua: *mut LUA) -> c_int {
 
         let lsb = luserdata as *mut LSB;
         let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+        assert!(!sandbox.is_null());
 
         assert!((*sandbox).msg.is_some());
 
@@ -449,8 +453,64 @@ extern fn read_message(lua: *mut LUA) -> c_int {
     }
 }
 
+extern fn read_config(lua: *mut LUA) -> c_int {
+    unsafe {
+        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        if luserdata == std::ptr::null() {
+            let err = "read_config() invalid lightuserdata";
+            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
+            return lua_error(lua);
+        }
+
+        let lsb = luserdata as *mut LSB;
+        let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+        assert!(!sandbox.is_null());
+        let sandbox: &mut LuaSandbox = &mut (*sandbox); // Get a Rust pointer
+
+        if lua_gettop(lua) != 1 {
+            let err = "read_config() must have a single argument";
+            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
+            return lua_error(lua);
+        }
+
+        // Get the config key as a Rust string
+        let mut len: size_t = 0;
+        let name: *const c_char = luaL_checklstring(lua, 1, &mut len);
+        if name.is_null() {
+            let err = "read_config() argument must be a string";
+            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
+            return lua_error(lua);
+        }
+        let name = CString::new(name, false);
+        let name = name.as_str().unwrap(); // Unlikely to fail
+
+        let ref config_map = sandbox.config.config;
+        match config_map.find_equiv(&name) {
+            Some(val) if val.is::<String>() => {
+                let s: &String = val.downcast_ref::<String>().unwrap();
+                s.with_c_str(|cstr| lua_pushlstring(lua, cstr, s.len() as size_t));
+            }
+            Some(val) if val.is::<f64>() => {
+                lua_pushnumber(lua, *val.downcast_ref::<f64>().unwrap() as c_double)
+            }
+            Some(val) if val.is::<i64>() => {
+                lua_pushnumber(lua, *val.downcast_ref::<i64>().unwrap() as c_double)
+            }
+            Some(val) if val.is::<bool>() => {
+                lua_pushboolean(lua, *val.downcast_ref::<bool>().unwrap() as c_int)
+            }
+            Some(_) | None => {
+                lua_pushnil(lua);
+            }
+        }
+
+        return 1;
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use std::any::Any;
     use sandbox;
     use message;
 
@@ -533,6 +593,26 @@ mod test {
         let mut m = Some(message::HekaMessage::new());
         m.get_mut_ref().set_field_type(String::from_str("type"));
         m.get_mut_ref().set_logger(String::from_str("logger"));
+        let (rc, mm) = sb.process_message(m.take_unwrap());
+        m = Some(mm);
+        assert!(sb.last_error().is_empty(), "error: {}", sb.last_error()); // todo remove after debugging
+        assert!(rc == 0, "rc={}", rc);
+        assert!(sb.destroy("".as_bytes()).is_empty());
+    }
+
+    #[test]
+    fn read_config() {
+        let mut sb = sandbox::LuaSandbox::new("../test/read_config.lua".as_bytes(), "".as_bytes(), 64*1024, 1000, 1024);
+        assert!(sb.last_error().is_empty());
+
+        sb.config.config.insert("string".to_string(), box "widget".to_string() as Box<Any>);
+        sb.config.config.insert("int64".to_string(), box () (99 as i64) as Box<Any>);
+        sb.config.config.insert("double".to_string(), box () (99.123 as f64) as Box<Any>);
+        sb.config.config.insert("bool".to_string(), box true as Box<Any>);
+
+        assert!(0 == sb.init("".as_bytes()));
+
+        let mut m = Some(message::HekaMessage::new());
         let (rc, mm) = sb.process_message(m.take_unwrap());
         m = Some(mm);
         assert!(sb.last_error().is_empty(), "error: {}", sb.last_error()); // todo remove after debugging

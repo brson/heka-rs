@@ -1,5 +1,5 @@
-extern crate std;
 extern crate protobuf; // depend on rust-protobuf runtime
+extern crate std;
 
 use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
 use std::any::{Any, AnyRefExt};
@@ -359,6 +359,88 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
     }
 }
 
+fn find_field<'a>(msg: &'a message::HekaMessage, name: &str, fi: uint) -> Option<&'a message::Field> {
+    let mut cnt = 0u;
+    for value in msg.get_fields().iter() {
+        if name == value.get_name() {
+            if cnt == fi {
+                return Some(value);
+            }
+            cnt += 1;
+        }
+    };
+    None
+}
+
+fn get_field_name<'a>(key: &'a str) -> Option<&'a str> {
+    let l = key.len();
+    if l > 0 && key.char_at(l-1) == ']' {
+        if key.starts_with("Fields[") {
+            return Some(key.slice(7, l-1));
+        }
+    }
+    None
+}
+
+fn push_field(lua: *mut LUA, msg: &message::HekaMessage, name: &str, fi: uint, ai: uint) {
+    let fo = find_field(msg, name, fi);
+    if fo.is_some() {
+        let field = fo.get_ref();
+        match field.get_value_type() {
+            message::Field_STRING => {
+                let v = field.get_value_string();
+                if ai < v.len() {
+                    let ref s = v[ai].as_slice();
+                    unsafe {
+                        lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
+                    }
+                    return;
+                }
+            }
+            message::Field_BYTES => {
+                let v = field.get_value_bytes();
+                if ai < v.len() {
+                    let ref s = v[ai];
+                    unsafe {
+                        lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
+                    }
+                    return;
+                }
+            }
+            message::Field_INTEGER => {
+                let v = field.get_value_integer();
+                if ai < v.len() {
+                    unsafe {
+                        lua_pushnumber(lua,  v[ai] as f64);
+                    }
+                    return;
+                }
+            }
+            message::Field_DOUBLE => {
+                let v = field.get_value_double();
+                if ai < v.len() {
+                    unsafe {
+                        lua_pushnumber(lua,  v[ai]);
+                    }
+                    return;
+                }
+            }
+            message::Field_BOOL => {
+                let v = field.get_value_bool();
+                if ai < v.len() {
+                    unsafe {
+                        lua_pushboolean(lua,  v[ai] as c_int);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+    unsafe {
+        lua_pushnil(lua);
+    }
+}
+
 extern fn read_message(lua: *mut LUA) -> c_int {
     unsafe {
         let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
@@ -445,9 +527,12 @@ extern fn read_message(lua: *mut LUA) -> c_int {
                 let s = msg.get_payload();
                 lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
             }
-            // todo add support for Fields[]
             _ => {
-                lua_pushnil(lua);
+                match get_field_name(field.as_slice())
+                {
+                    Some(name) => {push_field(lua, msg, name, fi as uint, ai as uint)}
+                    None => {lua_pushnil(lua)}
+                }
             }
         }
         return 1;
@@ -588,7 +673,7 @@ mod test {
 
     #[test]
     fn read_message() {
-        let mut sb = sandbox::LuaSandbox::new("../test/filter.lua".as_bytes(), "".as_bytes(), 64*1024, 1000, 1024);
+        let mut sb = sandbox::LuaSandbox::new("../test/read_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
         assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let mut m = Some(message::HekaMessage::new());
@@ -602,10 +687,60 @@ mod test {
         m.get_mut_ref().set_timestamp(999);
         m.get_mut_ref().set_severity(4);
         m.get_mut_ref().set_pid(23);
+        let mut f = message::Field::new();
+        f.set_name("test".into_string());
+        f.set_value_type(message::Field_STRING);
+        f.add_value_string("foo".into_string());
+        f.add_value_string("bar".into_string());
+        m.get_mut_ref().add_fields(f);
+        let mut f1 = message::Field::new();
+        f1.set_name("widget".into_string());
+        f1.set_value_type(message::Field_INTEGER);
+        f1.add_value_integer(222);
+        m.get_mut_ref().add_fields(f1);
+        let mut f2 = message::Field::new();
+        f2.set_name("test".into_string());
+        f2.set_value_type(message::Field_STRING);
+        f2.add_value_string("foo1".into_string());
+        f2.add_value_string("bar1".into_string());
+        m.get_mut_ref().add_fields(f2);
         let (rc, mm) = sb.process_message(m.take_unwrap());
         m = Some(mm);
-        assert!(rc == 0, "rc={}", rc);
+        assert!(rc == 0, "{}", sb.last_error());
         assert!(sb.destroy("".as_bytes()).is_empty());
+    }
+
+    #[test]
+    fn read_message_not_available() {
+        let mut sb = sandbox::LuaSandbox::new("../test/read_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
+        assert!(sb.last_error().is_empty());
+        assert!(0 == sb.init("".as_bytes()));
+        let rc = sb.timer_event(0);
+        assert!(rc == 0, "{}", sb.last_error());
+        assert!(sb.destroy("".as_bytes()).is_empty());
+    }
+
+    #[test]
+    fn read_message_error() {
+        let err = vec!["process_message() read_message() incorrect number of arguments",
+         "process_message() read_message() incorrect number of arguments",
+         "process_message() read_message() field argument must be a string",
+         "process_message() read_message() field index must be positive",
+         "process_message() read_message() array index must be positive"];
+        let mut idx = 0;
+        let mut m = Some(message::HekaMessage::new());
+        for e in err.iter() {
+            let mut sb = sandbox::LuaSandbox::new("../test/read_message_error.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
+            assert!(sb.last_error().is_empty());
+            assert!(0 == sb.init("".as_bytes()));
+            m.get_mut_ref().set_pid(idx);
+            let (rc, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+            assert!(rc == 1);
+            assert!(sb.last_error().as_slice() == *e, "test: {} expected: {} received: {}", idx, *e, sb.last_error());
+            idx += 1;
+            assert!(sb.destroy("".as_bytes()).is_empty());
+        }
     }
 
     #[test]
@@ -617,14 +752,7 @@ mod test {
         sb.config.config.insert("int64".to_string(), box () (99 as i64) as Box<Any>);
         sb.config.config.insert("double".to_string(), box () (99.123 as f64) as Box<Any>);
         sb.config.config.insert("bool".to_string(), box true as Box<Any>);
-
-        assert!(0 == sb.init("".as_bytes()), "last_error: {}", sb.last_error());
-
-        let mut m = Some(message::HekaMessage::new());
-        let (rc, mm) = sb.process_message(m.take_unwrap());
-        m = Some(mm);
-        assert!(sb.last_error().is_empty(), "error: {}", sb.last_error()); // todo remove after debugging
-        assert!(rc == 0, "rc={}", rc);
+        assert!(0 == sb.init("".as_bytes()), "{}", sb.last_error());
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
 }

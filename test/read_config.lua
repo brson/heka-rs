@@ -2,31 +2,20 @@
 -- License, v. 2.0. If a copy of the MPL was not distributed with this
 -- file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-local s = read_config("string")
-if s ~= "widget" then error("string") end
+require "string"
 
-local n = read_config("int64")
-if n ~= 99 then return error("int") end
+local tests = {
+{"string"   , "widget"  },
+{"int64"    , 99        },
+{"double"   , 99.123    },
+{"bool"     , true      },
+{"nil"      , nil       },
+}
 
-local d = read_config("double")
-if d ~= 99.123 then error("double") end
-
-local b = read_config("bool")
-if b ~= true then error("bool") end
-
-local n = read_config("nil")
-if n ~= nil then error("nil") end
-
--- local a = read_config("array")
--- if a ~= nil then error("array") end
-
--- local o = read_config("object")
--- if o ~= nil then return error("object") end
-
-function process_message ()
-    return 0
-end
-
-function timer_event()
+for i,v in ipairs(tests) do
+    local f = read_config(v[1])
+    if f ~= v[2] then
+        error(string.format("%s expected:%s received:%s", v[1], tostring(v[2]), tostring(f)), 0)
+    end
 end
 

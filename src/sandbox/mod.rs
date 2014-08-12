@@ -1,6 +1,5 @@
 extern crate std;
 extern crate protobuf; // depend on rust-protobuf runtime
-extern crate libc;
 
 use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
 use std::any::{Any, AnyRefExt};
@@ -372,9 +371,10 @@ extern fn read_message(lua: *mut LUA) -> c_int {
         let lsb = luserdata as *mut LSB;
         let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
         assert!(!sandbox.is_null());
-
-        assert!((*sandbox).msg.is_some());
-
+        if (*sandbox).msg.is_none() { // read attempt outside process_message is non-fatal
+            lua_pushnil(lua);
+            return 1;
+        }
         let msg = (*sandbox).msg.get_ref();
 
         let n = lua_gettop(lua);
@@ -427,10 +427,11 @@ extern fn read_message(lua: *mut LUA) -> c_int {
                 let s = msg.get_hostname();
                 lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
             }
-            "Uuid" => {
-                let s = msg.get_uuid();
-                lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
-            }
+//            "Uuid" => {
+//                let u = Uuid::from_bytes(msg.get_uuid());
+//                let s = u.get_ref().to_simple_str();
+//                lua_pushlstring(lua, s.as_slice().as_ptr() as *const i8, s.len() as size_t);
+//            }
             "Timestamp" => {
                 lua_pushnumber(lua, msg.get_timestamp() as f64);
             }
@@ -593,9 +594,16 @@ mod test {
         let mut m = Some(message::HekaMessage::new());
         m.get_mut_ref().set_field_type(String::from_str("type"));
         m.get_mut_ref().set_logger(String::from_str("logger"));
+        m.get_mut_ref().set_payload(String::from_str("payload"));
+        m.get_mut_ref().set_env_version(String::from_str("envversion"));
+        m.get_mut_ref().set_hostname(String::from_str("hostname"));
+//        let (u, _) = Uuid::parse_string("f47ac10b-58cc-4372-a567-0e02b2c3d479");
+//        m.get_mut_ref().set_uuid(u.as_bytes());
+        m.get_mut_ref().set_timestamp(999);
+        m.get_mut_ref().set_severity(4);
+        m.get_mut_ref().set_pid(23);
         let (rc, mm) = sb.process_message(m.take_unwrap());
         m = Some(mm);
-        assert!(sb.last_error().is_empty(), "error: {}", sb.last_error()); // todo remove after debugging
         assert!(rc == 0, "rc={}", rc);
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
@@ -610,7 +618,7 @@ mod test {
         sb.config.config.insert("double".to_string(), box () (99.123 as f64) as Box<Any>);
         sb.config.config.insert("bool".to_string(), box true as Box<Any>);
 
-        assert!(0 == sb.init("".as_bytes()));
+        assert!(0 == sb.init("".as_bytes()), "last_error: {}", sb.last_error());
 
         let mut m = Some(message::HekaMessage::new());
         let (rc, mm) = sb.process_message(m.take_unwrap());

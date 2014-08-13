@@ -5,7 +5,7 @@
 require "string"
 
 local tests = {
--- type, name, vaule, representation, count
+-- type, name, value, representation, count
 {0  , "foo"     , "bar"         , "test", 1     },
 {1  , "bytes"   , "data"        , ""    , 1     },
 {2  , "int"     , 999           , ""    , 2     },

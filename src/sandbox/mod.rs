@@ -293,22 +293,15 @@ fn lua_touserdata(lua: *mut LUA, index: c_int) -> *const c_void;
 fn lua_gettop(lua: *mut LUA) -> c_int;
 fn lua_settop(lua: *mut LUA, index: c_int);
 fn luaL_checklstring(lua: *mut LUA, index: c_int, len: *mut size_t) -> *const c_char;
+fn luaL_optinteger(lua: *mut LUA, narg: c_int, d: c_int) -> c_int;
+fn luaL_argerror(lua: *mut LUA, narg: c_int, msg: *const c_char);
 }
 
 extern fn inject_message(lua: *mut LUA) -> c_int {
     unsafe {
+        argcheck(lua, lua_gettop(lua) == 1 && lua_type(lua, 1) == 5, 1, "takes a single table argument");
         let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
-        if luserdata == std::ptr::null() {
-            let err = "inject_message() invalid lightuserdata";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
-        let top = lua_gettop(lua);
-        if top != 1 || lua_type(lua, 1) != 5 { // todo us LUA_TTABLE constant
-            let err = "inject_message() takes a single table argument";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
+        argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
         if lsb_output_protobuf(lsb, 1, 0) != 0 {
@@ -331,11 +324,8 @@ extern fn inject_message(lua: *mut LUA) -> c_int {
 extern fn inject_payload(lua: *mut LUA) -> c_int {
     unsafe {
         let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
-        if luserdata == std::ptr::null() {
-            let err = "inject_payload() invalid lightuserdata";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
+        argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
+
         let lsb = luserdata as *mut LSB;
         let mut len: size_t = 0;
         let mut typ = String::from_str("txt");
@@ -362,6 +352,15 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
         return 0;
     }
 }
+
+fn argcheck(lua: *mut LUA, cond: bool, narg: c_int, msg: &str) {
+    if !cond {
+        unsafe {
+            luaL_argerror(lua, narg, msg.as_ptr() as *const i8);
+        }
+    }
+}
+
 
 fn find_field<'a>(msg: &'a message::HekaMessage, name: &str, fi: uint) -> Option<&'a message::Field> {
     let mut cnt = 0u;
@@ -445,12 +444,16 @@ fn push_field(lua: *mut LUA, field: &message::Field, ai: uint) -> uint {
 
 extern fn read_message(lua: *mut LUA) -> c_int {
     unsafe {
+        let n = lua_gettop(lua);
+        argcheck(lua, n > 0 && n < 4, 0, "incorrect number of arguments");
+        let mut len: size_t = 0;
+        let f: *const c_char = luaL_checklstring(lua, 1, &mut len);
+        let fi = luaL_optinteger(lua, 2, 0);
+        argcheck(lua, fi >= 0, 2,  "field index must be >= 0");
+        let ai = luaL_optinteger(lua, 3, 0);
+        argcheck(lua, ai >= 0, 3, "array index must be >= 0");
         let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
-        if luserdata == std::ptr::null() {
-            let err = "read_message() invalid lightuserdata";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
+        argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
         let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
@@ -461,34 +464,8 @@ extern fn read_message(lua: *mut LUA) -> c_int {
         }
         let msg = (*sandbox).msg.get_ref();
 
-        let n = lua_gettop(lua);
-        if n < 1 || n > 3 {
-            let err = "read_message() incorrect number of arguments";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
 
-        let mut len: size_t = 0;
-        let c = lua_tolstring(lua, 1, &mut len);
-        if c == std::ptr::null() {
-            let err = "read_message() field argument must be a string";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
-        let fi = lua_tointeger(lua, 2);
-        if fi < 0 {
-            let err = "read_message() field index must be positive";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
-        let ai = lua_tointeger(lua, 3);
-        if ai < 0 {
-            let err = "read_message() array index must be positive";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
-
-        let field = std::string::raw::from_buf(c as *const u8);
+        let field = std::string::raw::from_buf(f as *const u8);
 
         match field.as_slice() {
             "Type" => {
@@ -549,18 +526,9 @@ extern fn read_message(lua: *mut LUA) -> c_int {
 
 extern fn read_next_field(lua: *mut LUA) -> c_int {
     unsafe {
+        argcheck(lua, lua_gettop(lua) == 0, 0, "takes no arguments");
         let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
-        if luserdata == std::ptr::null() {
-            let err = "read_next_field() invalid lightuserdata";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
-
-        if lua_gettop(lua) !=0 {
-            let err = "read_next_field() takes no arguments";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
+        argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
         let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
@@ -590,32 +558,18 @@ extern fn read_next_field(lua: *mut LUA) -> c_int {
 
 extern fn read_config(lua: *mut LUA) -> c_int {
     unsafe {
+        argcheck(lua, lua_gettop(lua) == 1, 1, "takes a single string argument");
         let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
-        if luserdata == std::ptr::null() {
-            let err = "read_config() invalid lightuserdata";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
+        argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
         let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
         assert!(!sandbox.is_null());
         let sandbox: &mut LuaSandbox = &mut (*sandbox); // Get a Rust pointer
 
-        if lua_gettop(lua) != 1 {
-            let err = "read_config() must have a single argument";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
-
         // Get the config key as a Rust string
         let mut len: size_t = 0;
         let name: *const c_char = luaL_checklstring(lua, 1, &mut len);
-        if name.is_null() {
-            let err = "read_config() argument must be a string";
-            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
-            return lua_error(lua);
-        }
         let name = CString::new(name, false);
         let name = name.as_str().unwrap(); // Unlikely to fail
 
@@ -770,11 +724,11 @@ mod test {
 
     #[test]
     fn read_message_error() {
-        let err = vec!["process_message() read_message() incorrect number of arguments",
-         "process_message() read_message() incorrect number of arguments",
-         "process_message() read_message() field argument must be a string",
-         "process_message() read_message() field index must be positive",
-         "process_message() read_message() array index must be positive"];
+        let err = vec!["process_message() ../test/read_message_error.lua:8: bad argument #0 to 'read_message' (incorrect number of arguments)",
+         "process_message() ../test/read_message_error.lua:10: bad argument #0 to 'read_message' (incorrect number of arguments)",
+         "process_message() ../test/read_message_error.lua:12: bad argument #1 to 'read_message' (string expected, got table)",
+         "process_message() ../test/read_message_error.lua:14: bad argument #2 to 'read_message' (field index must be >= 0)",
+         "process_message() ../test/read_message_error.lua:16: bad argument #3 to 'read_message' (array index must be >= 0)"];
         let mut idx = 0;
         let mut m = Some(message::HekaMessage::new());
         for e in err.iter() {
@@ -872,7 +826,7 @@ mod test {
         assert!(0 == sb.init("".as_bytes()));
         let rc = sb.timer_event(0);
         assert!(1 == rc);
-        assert!(sb.last_error().as_slice() == "timer_event() read_next_field() takes no arguments", "received: {}", sb.last_error());
+        assert!(sb.last_error().as_slice() == "timer_event() ../test/read_next_field.lua:31: bad argument #0 to 'read_next_field' (takes no arguments)", "received: {}", sb.last_error());
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
 }

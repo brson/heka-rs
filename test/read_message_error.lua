@@ -11,9 +11,9 @@ function process_message()
     elseif p == 2 then
         read_message({}) -- wrong type
     elseif p == 3 then
-        read_message("x", -1, 0) -- negative row
+        read_message("x", -1, 0) -- negative field index
     elseif p == 4 then
-        read_message("x", 1, -2) -- negative col
+        read_message("x", 1, -2) -- negative array index
     end
     return 0
 end

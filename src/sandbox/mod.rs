@@ -51,7 +51,8 @@ pub enum LUA {}
 pub struct LuaSandbox {
     msg: std::option::Option<message::HekaMessage>,
     lsb: *mut LSB,
-    config: SandboxConfig
+    config: SandboxConfig,
+    field_iterator: uint
 }
 
 impl LuaSandbox {
@@ -68,7 +69,8 @@ impl LuaSandbox {
             let mut s = box LuaSandbox{
                 msg: None,
                 lsb: std::ptr::mut_null(),
-                config: cfg
+                config: cfg,
+                field_iterator: 0
             };
             // Convert our owned box into an unsafe pointer, making
             // sure that we're passing a pointer into the heap to
@@ -104,6 +106,7 @@ impl LuaSandbox {
             "inject_payload".with_c_str(|f| {lsb_add_function(self.lsb, inject_payload, f);});
             "read_message".with_c_str(|f| {lsb_add_function(self.lsb, read_message, f);});
             "read_config".with_c_str(|f| {lsb_add_function(self.lsb, read_config, f);});
+            "read_next_field".with_c_str(|f| {lsb_add_function(self.lsb, read_next_field, f);});
 
             let mut r: c_int = 0;
             state_file.with_c_str(|sf| {r = lsb_init(self.lsb, sf);}) ;
@@ -188,6 +191,7 @@ impl LuaSandbox {
 
             assert!(self.msg.is_none());
             self.msg = Some(msg);
+            self.field_iterator = 0;
             if lua_pcall(lua, 0, 1, 0) != 0 {
                 let mut len: size_t = 0;
                 let c = lua_tolstring(lua, -1, &mut len);
@@ -382,63 +386,61 @@ fn get_field_name<'a>(key: &'a str) -> Option<&'a str> {
     None
 }
 
-fn push_field(lua: *mut LUA, msg: &message::HekaMessage, name: &str, fi: uint, ai: uint) {
-    let fo = find_field(msg, name, fi);
-    if fo.is_some() {
-        let field = fo.get_ref();
-        match field.get_value_type() {
-            message::Field_STRING => {
-                let v = field.get_value_string();
-                if ai < v.len() {
-                    let ref s = v[ai].as_slice();
-                    unsafe {
-                        lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
-                    }
-                    return;
+fn push_field(lua: *mut LUA, field: &message::Field, ai: uint) -> uint {
+    match field.get_value_type() {
+        message::Field_STRING => {
+            let v = field.get_value_string();
+            if ai < v.len() {
+                let ref s = v[ai].as_slice();
+                unsafe {
+                    lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
                 }
+                return v.len();
             }
-            message::Field_BYTES => {
-                let v = field.get_value_bytes();
-                if ai < v.len() {
-                    let ref s = v[ai];
-                    unsafe {
-                        lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
-                    }
-                    return;
+        }
+        message::Field_BYTES => {
+            let v = field.get_value_bytes();
+            if ai < v.len() {
+                let ref s = v[ai];
+                unsafe {
+                    lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
                 }
+                return v.len();
             }
-            message::Field_INTEGER => {
-                let v = field.get_value_integer();
-                if ai < v.len() {
-                    unsafe {
-                        lua_pushnumber(lua,  v[ai] as f64);
-                    }
-                    return;
+        }
+        message::Field_INTEGER => {
+            let v = field.get_value_integer();
+            if ai < v.len() {
+                unsafe {
+                    lua_pushnumber(lua,  v[ai] as f64);
                 }
+                return v.len();
             }
-            message::Field_DOUBLE => {
-                let v = field.get_value_double();
-                if ai < v.len() {
-                    unsafe {
-                        lua_pushnumber(lua,  v[ai]);
-                    }
-                    return;
+        }
+        message::Field_DOUBLE => {
+            let v = field.get_value_double();
+            if ai < v.len() {
+                unsafe {
+                    lua_pushnumber(lua,  v[ai]);
                 }
+                return v.len();
             }
-            message::Field_BOOL => {
-                let v = field.get_value_bool();
-                if ai < v.len() {
-                    unsafe {
-                        lua_pushboolean(lua,  v[ai] as c_int);
-                    }
-                    return;
+        }
+        message::Field_BOOL => {
+            let v = field.get_value_bool();
+            if ai < v.len() {
+                unsafe {
+                    lua_pushboolean(lua,  v[ai] as c_int);
                 }
+                return v.len();
             }
         }
     }
+
     unsafe {
         lua_pushnil(lua);
     }
+    return 0;
 }
 
 extern fn read_message(lua: *mut LUA) -> c_int {
@@ -530,13 +532,60 @@ extern fn read_message(lua: *mut LUA) -> c_int {
             _ => {
                 match get_field_name(field.as_slice())
                 {
-                    Some(name) => {push_field(lua, msg, name, fi as uint, ai as uint)}
-                    None => {lua_pushnil(lua)}
+                    Some(name) => {
+                        match find_field(msg, name, fi as uint)
+                        {
+                            Some(f) => {push_field(lua, f, ai as uint);}
+                            None => {lua_pushnil(lua);}
+                        }
+                    }
+                    None => {lua_pushnil(lua);}
                 }
             }
         }
-        return 1;
     }
+    return 1;
+}
+
+extern fn read_next_field(lua: *mut LUA) -> c_int {
+    unsafe {
+        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        if luserdata == std::ptr::null() {
+            let err = "read_next_field() invalid lightuserdata";
+            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
+            return lua_error(lua);
+        }
+
+        if lua_gettop(lua) !=0 {
+            let err = "read_next_field() takes no arguments";
+            lua_pushlstring(lua, err.as_ptr() as *const i8, err.len() as size_t);
+            return lua_error(lua);
+        }
+
+        let lsb = luserdata as *mut LSB;
+        let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+        assert!(!sandbox.is_null());
+
+        if (*sandbox).msg.is_none()  // read attempt outside process_message is non-fatal
+        || (*sandbox).field_iterator >= (*sandbox).msg.get_ref().get_fields().len() { // finished iterating
+            lua_pushnil(lua);
+            lua_pushnil(lua);
+            lua_pushnil(lua);
+            lua_pushnil(lua);
+            lua_pushnil(lua);
+            return 5;
+        }
+
+        let msg = (*sandbox).msg.get_ref();
+        let ref field = msg.get_fields()[(*sandbox).field_iterator];
+        (*sandbox).field_iterator += 1;
+        lua_pushinteger(lua, field.get_value_type() as c_int);
+        lua_pushlstring(lua, field.get_name().as_ptr() as *const i8, field.get_name().len() as size_t);
+        let count = push_field(lua, field, 0);
+        lua_pushlstring(lua, field.get_representation().as_ptr() as *const i8, field.get_representation().len() as size_t);
+        lua_pushinteger(lua, count as c_int);
+    }
+    return 5;
 }
 
 extern fn read_config(lua: *mut LUA) -> c_int {
@@ -589,9 +638,8 @@ extern fn read_config(lua: *mut LUA) -> c_int {
                 lua_pushnil(lua);
             }
         }
-
-        return 1;
     }
+    return 1;
 }
 
 #[cfg(test)]
@@ -753,6 +801,78 @@ mod test {
         sb.config.config.insert("double".to_string(), box () (99.123 as f64) as Box<Any>);
         sb.config.config.insert("bool".to_string(), box true as Box<Any>);
         assert!(0 == sb.init("".as_bytes()), "{}", sb.last_error());
+        assert!(sb.destroy("".as_bytes()).is_empty());
+    }
+
+    #[test]
+    fn read_next_field() {
+        let mut sb = sandbox::LuaSandbox::new("../test/read_next_field.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
+        assert!(sb.last_error().is_empty());
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(message::HekaMessage::new());
+
+        let mut f = message::Field::new();
+        f.set_name("foo".into_string());
+        f.set_representation("test".into_string());
+        f.set_value_type(message::Field_STRING);
+        f.add_value_string("bar".into_string());
+        m.get_mut_ref().add_fields(f);
+
+
+        let mut f1 = message::Field::new();
+        f1.set_name("bytes".into_string());
+        f1.set_value_type(message::Field_BYTES);
+        f1.add_value_bytes(vec!['d' as u8, 'a' as u8, 't' as u8, 'a' as u8]);
+        m.get_mut_ref().add_fields(f1);
+
+        let mut f2 = message::Field::new();
+        f2.set_name("int".into_string());
+        f2.set_value_type(message::Field_INTEGER);
+        f2.add_value_integer(999);
+        f2.add_value_integer(1000);
+        m.get_mut_ref().add_fields(f2);
+
+        let mut f3 = message::Field::new();
+        f3.set_name("double".into_string());
+        f3.set_value_type(message::Field_DOUBLE);
+        f3.add_value_double(99.9);
+        m.get_mut_ref().add_fields(f3);
+
+        let mut f4 = message::Field::new();
+        f4.set_name("bool".into_string());
+        f4.set_value_type(message::Field_BOOL);
+        f4.add_value_bool(true);
+        m.get_mut_ref().add_fields(f4);
+
+        let mut f5 = message::Field::new();
+        f5.set_name("foo".into_string());
+        f5.set_value_type(message::Field_STRING);
+        f5.add_value_string("alternate".into_string());
+        m.get_mut_ref().add_fields(f5);
+
+        let mut f6 = message::Field::new();
+        f6.set_name("false".into_string());
+        f6.set_value_type(message::Field_BOOL);
+        f6.add_value_bool(false);
+        m.get_mut_ref().add_fields(f6);
+
+        for n in range(0u, 2) { // make sure the iterator is reset between messages
+            let (rc, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+            assert!(rc == 0, "{}", sb.last_error());
+        }
+
+        assert!(sb.destroy("".as_bytes()).is_empty());
+    }
+
+    #[test]
+    fn read_next_field_error() {
+        let mut sb = sandbox::LuaSandbox::new("../test/read_next_field.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
+        assert!(sb.last_error().is_empty());
+        assert!(0 == sb.init("".as_bytes()));
+        let rc = sb.timer_event(0);
+        assert!(1 == rc);
+        assert!(sb.last_error().as_slice() == "timer_event() read_next_field() takes no arguments", "received: {}", sb.last_error());
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
 }

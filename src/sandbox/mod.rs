@@ -42,6 +42,12 @@ pub enum lsb_usage_stat {
   STAT_MAX
 }
 
+#[repr(C)]
+pub enum lua_pseudo_index {
+  LUA_GLOBALSINDEX = -10002,
+  LUA_UPVALUEINDEX = -10003
+}
+
 struct SandboxConfig {
     config: HashMap<String, Box<Any>>
 }
@@ -118,7 +124,13 @@ impl LuaSandbox {
                 return r;
             }
 
-            // todo rename output to add_to_payload
+            // rename output to add_to_payload
+            let lua = lsb_get_lua(self.lsb);
+            let output = "output";
+            output.with_c_str(|f| {lua_getfield(lua, LUA_GLOBALSINDEX as i32, f);});
+            "add_to_payload".with_c_str(|f| {lua_setfield(lua, LUA_GLOBALSINDEX as i32, f);});
+            lua_pushnil(lua);
+            output.with_c_str(|f| {lua_setfield(lua, LUA_GLOBALSINDEX as i32, f);});
             return 0;
         }
     }
@@ -295,6 +307,9 @@ fn lua_gc(lua: *mut LUA, what: c_int, data: c_int) -> c_int;
 fn lua_touserdata(lua: *mut LUA, index: c_int) -> *const c_void;
 fn lua_gettop(lua: *mut LUA) -> c_int;
 fn lua_settop(lua: *mut LUA, index: c_int);
+fn lua_getfield(lua: *mut LUA, index: c_int, k: *const c_char);
+fn lua_setfield(lua: *mut LUA, index: c_int, k: *const c_char);
+
 fn luaL_checklstring(lua: *mut LUA, index: c_int, len: *mut size_t) -> *const c_char;
 fn luaL_optlstring(lua: *mut LUA, index: c_int, d: *const c_char, len: *mut size_t) -> *const c_char;
 fn luaL_optinteger(lua: *mut LUA, narg: c_int, d: c_int) -> c_int;
@@ -304,7 +319,7 @@ fn luaL_argerror(lua: *mut LUA, narg: c_int, msg: *const c_char);
 extern fn inject_message(lua: *mut LUA) -> c_int {
     unsafe {
         argcheck(lua, lua_gettop(lua) == 1 && lua_type(lua, 1) == 5, 1, "takes a single table argument");
-        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        let luserdata = lua_touserdata(lua, LUA_UPVALUEINDEX as i32);
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
@@ -327,7 +342,7 @@ extern fn inject_message(lua: *mut LUA) -> c_int {
 
 extern fn inject_payload(lua: *mut LUA) -> c_int {
     unsafe {
-        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        let luserdata = lua_touserdata(lua, LUA_UPVALUEINDEX as i32);
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
@@ -469,7 +484,7 @@ extern fn read_message(lua: *mut LUA) -> c_int {
         argcheck(lua, fi >= 0, 2,  "field index must be >= 0");
         let ai = luaL_optinteger(lua, 3, 0);
         argcheck(lua, ai >= 0, 3, "array index must be >= 0");
-        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        let luserdata = lua_touserdata(lua, LUA_UPVALUEINDEX as i32);
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
@@ -544,7 +559,7 @@ extern fn read_message(lua: *mut LUA) -> c_int {
 extern fn read_next_field(lua: *mut LUA) -> c_int {
     unsafe {
         argcheck(lua, lua_gettop(lua) == 0, 1, "takes no arguments");
-        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        let luserdata = lua_touserdata(lua, LUA_UPVALUEINDEX as i32);
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
@@ -576,7 +591,7 @@ extern fn read_next_field(lua: *mut LUA) -> c_int {
 extern fn read_config(lua: *mut LUA) -> c_int {
     unsafe {
         argcheck(lua, lua_gettop(lua) == 1, 1, "takes a single string argument");
-        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        let luserdata = lua_touserdata(lua, LUA_UPVALUEINDEX as i32);
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
@@ -715,7 +730,7 @@ extern fn write_message(lua: *mut LUA) -> c_int {
         let ai = luaL_optinteger(lua, 5, 0);
         argcheck(lua, ai >= 0, 5, "array index must be >= 0");
         let ai = ai as uint;
-        let luserdata = lua_touserdata(lua, -10003); // todo use LUA_GLOBALSINDEX
+        let luserdata = lua_touserdata(lua, LUA_UPVALUEINDEX as i32);
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;

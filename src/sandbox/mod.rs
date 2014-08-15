@@ -197,8 +197,7 @@ impl LuaSandbox {
             self.msg = Some(msg);
             self.field_iterator = 0;
             if lua_pcall(lua, 0, 1, 0) != 0 {
-                let mut len: size_t = 0;
-                let c = lua_tolstring(lua, -1, &mut len);
+                let c = lua_tolstring(lua, -1, std::ptr::mut_null());
                 let err = format!("{}() {}", func_name, std::string::raw::from_buf(c as *const u8));
                 err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
                 return (1, self.msg.take_unwrap());
@@ -240,8 +239,7 @@ impl LuaSandbox {
 
             lua_pushnumber(lua, ns as f64);
             if lua_pcall(lua, 1, 0, 0) != 0 {
-                let mut len: size_t = 0;
-                let c = lua_tolstring(lua, -1, &mut len);
+                let c = lua_tolstring(lua, -1, std::ptr::mut_null());
                 let err = format!("{}() {}", func_name,  std::string::raw::from_buf(c as *const u8));
                 err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
                 return 1;
@@ -344,7 +342,7 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
             }
         }
         if top > 1 {
-            let c = luaL_checklstring(lua, 2, &mut len);
+            let c = luaL_checklstring(lua, 2, std::ptr::mut_null());
             name = std::string::raw::from_buf(c as *const u8);
         }
         if top > 2 {
@@ -362,7 +360,8 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
 fn argcheck(lua: *mut LUA, cond: bool, narg: c_int, msg: &str) {
     if !cond {
         unsafe {
-            luaL_argerror(lua, narg, msg.as_ptr() as *const i8); // long jumps
+            lua_pushlstring(lua, msg.as_ptr() as *const i8, msg.len() as size_t); // create a properly terminated NULL string
+            luaL_argerror(lua, narg, lua_tolstring(lua, -1, std::ptr::mut_null())); // long jumps
         }
     }
 }
@@ -465,8 +464,7 @@ extern fn read_message(lua: *mut LUA) -> c_int {
     unsafe {
         let n = lua_gettop(lua);
         argcheck(lua, n > 0 && n < 4, 0, "incorrect number of arguments");
-        let mut len: size_t = 0;
-        let f: *const c_char = luaL_checklstring(lua, 1, &mut len);
+        let f: *const c_char = luaL_checklstring(lua, 1, std::ptr::mut_null());
         let fi = luaL_optinteger(lua, 2, 0);
         argcheck(lua, fi >= 0, 2,  "field index must be >= 0");
         let ai = luaL_optinteger(lua, 3, 0);
@@ -587,8 +585,7 @@ extern fn read_config(lua: *mut LUA) -> c_int {
         let sandbox: &mut LuaSandbox = &mut (*sandbox); // Get a Rust pointer
 
         // Get the config key as a Rust string
-        let mut len: size_t = 0;
-        let name: *const c_char = luaL_checklstring(lua, 1, &mut len);
+        let name: *const c_char = luaL_checklstring(lua, 1, std::ptr::mut_null());
         let name = CString::new(name, false);
         let name = name.as_str().unwrap(); // Unlikely to fail
 
@@ -708,11 +705,10 @@ extern fn write_message(lua: *mut LUA) -> c_int {
     unsafe {
         let n = lua_gettop(lua);
         argcheck(lua, n > 1 && n < 6, 0, "incorrect number of arguments");
-        let mut len: size_t = 0;
-        let name: *const c_char = luaL_checklstring(lua, 1, &mut len);
+        let name: *const c_char = luaL_checklstring(lua, 1, std::ptr::mut_null());
         let t = lua_type(lua, 2);
         argcheck(lua, t == 4 || t == 3 || t == 1, 2, "only accepts string, numeric, or boolean values");
-        let r: *const c_char = luaL_optlstring(lua, 3, "".as_ptr() as *const i8, &mut len);
+        let r: *const c_char = luaL_optlstring(lua, 3, "".as_ptr() as *const i8, std::ptr::mut_null());
         let fi = luaL_optinteger(lua, 4, 0);
         argcheck(lua, fi >= 0, 4,  "field index must be >= 0");
         let fi = fi as uint;
@@ -734,27 +730,27 @@ extern fn write_message(lua: *mut LUA) -> c_int {
         match field.as_slice() {
             "Type" => {
                 argcheck(lua, t == 4, 2, "'Type' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, &mut len);
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
                 msg.set_field_type(std::string::raw::from_buf(v as *const u8));
             }
             "Logger" => {
                 argcheck(lua, t == 4, 2, "'Logger' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, &mut len);
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
                 msg.set_logger(std::string::raw::from_buf(v as *const u8));
             }
             "Payload" => {
                 argcheck(lua, t == 4, 2, "'Payload' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, &mut len);
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
                 msg.set_payload(std::string::raw::from_buf(v as *const u8));
             }
             "EnvVersion" => {
                 argcheck(lua, t == 4, 2, "'EnvVersion' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, &mut len);
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
                 msg.set_env_version(std::string::raw::from_buf(v as *const u8));
             }
             "Hostname" => {
                 argcheck(lua, t == 4, 2, "'Hostname' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, &mut len);
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
                 msg.set_hostname(std::string::raw::from_buf(v as *const u8));
             }
 //            "Uuid" => {
@@ -769,8 +765,7 @@ extern fn write_message(lua: *mut LUA) -> c_int {
                 msg.set_severity(lua_tointeger(lua, 2) as i32);
             }
             "Pid" => {
-                // todo Brian without the null terminator error message will be this literal and the next"'Pid' must be a number or stringfield type mis-match"
-                argcheck(lua, t == 3 || t == 4, 2, "'Pid' must be a number or string\0");
+                argcheck(lua, t == 3 || t == 4, 2, "'Pid' must be a number or string");
                 msg.set_pid(lua_tointeger(lua, 2) as i32);
             }
             _ => {

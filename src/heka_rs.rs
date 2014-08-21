@@ -9,14 +9,15 @@ extern crate libc;
 use std::path::Path;
 use std::io::fs::File;
 use std::io::BufferedReader;
+use message::pb;
 
-mod message; // add generated file to the project
+mod message;
 mod sandbox;
 
 fn main() {
     let mut count = 0u;
-    let mut sb = sandbox::LuaSandbox::new("../test/nginx_access.lua".as_bytes(), "heka_rs/modules".as_bytes(), 8*1024*1024, 1000000, 1024*63);
-    let mut m = Some(message::HekaMessage::new());
+    let mut sb = sandbox::LuaSandbox::new("../test/nginx_access.lua".as_bytes(), "heka_rs/modules".as_bytes(), 0, 0, 0);
+    let mut m = Some(pb::HekaMessage::new());
 
     let r = sb.init("".as_bytes());
     if r != 0 {
@@ -33,7 +34,7 @@ fn main() {
             println!("process message failed {}", rc);
             break;
         } else if rc == -1 {
-            println!("process message failed parsing line {}: {}", count, m.get_mut_ref().get_payload());
+            println!("process message failed parsing line {}: {}", count, m.get_ref().get_payload());
         }
     }
 

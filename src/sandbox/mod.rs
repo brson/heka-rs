@@ -1,19 +1,17 @@
-extern crate protobuf; // depend on rust-protobuf runtime
-extern crate std;
-
-use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
+use std;
 use std::any::{Any, AnyRefExt};
 use std::collections::HashMap;
 use std::c_str::CString;
-
-use message;
+use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
+use protobuf;
+use super::message::pb;
 
 //trait Sandbox {
 //  fn new(source_file: &[u8], include_path: &[u8], memory_limit: c_uint, instruction_limit: c_uint, output_limit: c_uint) -> Self;
 //  fn init(&mut self, state_file: &[u8]) -> int;
 //  fn destroy(&mut self, state_file: &[u8]) -> String
 //  fn last_error(&mut self) -> Sting;
-//  fn fn process_message(&mut self, msg: message::HekaMessage) -> (c_int, message::HekaMessage);
+//  fn fn process_message(&mut self, msg: pb::HekaMessage) -> (c_int, pb::HekaMessage);
 //  fn timer_event(&mut self, ns: i64) -> int;
 //  fn usage(&mut self, utype: lsb_usage_type, ustat: lsb_usage_stat) -> c_uint;
 //  fn state(&mut self) -> lsb_state;
@@ -55,7 +53,7 @@ struct SandboxConfig {
 pub enum LSB {}
 pub enum LUA {}
 pub struct LuaSandbox {
-    msg: std::option::Option<message::HekaMessage>,
+    msg: std::option::Option<pb::HekaMessage>,
     lsb: *mut LSB,
     config: SandboxConfig,
     field_iterator: uint
@@ -185,7 +183,7 @@ impl LuaSandbox {
         }
     }
 
-    pub fn process_message(&mut self, msg: message::HekaMessage) -> (c_int, message::HekaMessage) {
+    pub fn process_message(&mut self, msg: pb::HekaMessage) -> (c_int, pb::HekaMessage) {
         let func_name = "process_message";
         unsafe {
             if self.lsb == std::ptr::mut_null() {
@@ -333,7 +331,7 @@ extern fn inject_message(lua: *mut LUA) -> c_int {
         let c = lsb_get_output(lsb, &mut len);
         if len != 0 {
             // todo hand it back to a Rust callback
-            let m = std::slice::raw::buf_as_slice(c as *const u8, len as uint, protobuf::parse_from_bytes::<message::HekaMessage>);
+            let m = std::slice::raw::buf_as_slice(c as *const u8, len as uint, protobuf::parse_from_bytes::<pb::HekaMessage>);
             println!("timestamp:{} fields:{}", m.get_timestamp(), m.get_fields());
         }
         return 0;
@@ -382,7 +380,7 @@ fn argcheck(lua: *mut LUA, cond: bool, narg: c_int, msg: &str) {
 }
 
 
-fn find_field<'a>(msg: &'a message::HekaMessage, name: &str, fi: uint) -> Option<&'a message::Field> {
+fn find_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint) -> Option<&'a pb::Field> {
     let mut cnt = 0u;
     for value in msg.get_fields().iter() {
         if name == value.get_name() {
@@ -395,7 +393,7 @@ fn find_field<'a>(msg: &'a message::HekaMessage, name: &str, fi: uint) -> Option
     None
 }
 
-fn find_field_mut<'a>(msg: &'a mut message::HekaMessage, name: &str, fi: uint) -> (Option<&'a mut message::Field>, uint) {
+fn find_field_mut<'a>(msg: &'a mut pb::HekaMessage, name: &str, fi: uint) -> (Option<&'a mut pb::Field>, uint) {
     let mut cnt = 0u;
     for value in msg.mut_fields().mut_iter() {
         if name == value.get_name() {
@@ -418,9 +416,9 @@ fn get_field_name<'a>(key: &'a str) -> Option<&'a str> {
     None
 }
 
-fn push_field(lua: *mut LUA, field: &message::Field, ai: uint) -> uint {
+fn push_field(lua: *mut LUA, field: &pb::Field, ai: uint) -> uint {
     match field.get_value_type() {
-        message::Field_STRING => {
+        pb::Field_STRING => {
             let v = field.get_value_string();
             if ai < v.len() {
                 let ref s = v[ai].as_slice();
@@ -430,7 +428,7 @@ fn push_field(lua: *mut LUA, field: &message::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        message::Field_BYTES => {
+        pb::Field_BYTES => {
             let v = field.get_value_bytes();
             if ai < v.len() {
                 let ref s = v[ai];
@@ -440,7 +438,7 @@ fn push_field(lua: *mut LUA, field: &message::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        message::Field_INTEGER => {
+        pb::Field_INTEGER => {
             let v = field.get_value_integer();
             if ai < v.len() {
                 unsafe {
@@ -449,7 +447,7 @@ fn push_field(lua: *mut LUA, field: &message::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        message::Field_DOUBLE => {
+        pb::Field_DOUBLE => {
             let v = field.get_value_double();
             if ai < v.len() {
                 unsafe {
@@ -458,7 +456,7 @@ fn push_field(lua: *mut LUA, field: &message::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        message::Field_BOOL => {
+        pb::Field_BOOL => {
             let v = field.get_value_bool();
             if ai < v.len() {
                 unsafe {
@@ -627,9 +625,9 @@ extern fn read_config(lua: *mut LUA) -> c_int {
     return 1;
 }
 
-fn update_field(lua: *mut LUA, varg: c_int, field: &mut message::Field, ai: uint) {
+fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
     match field.get_value_type() {
-        message::Field_STRING => {
+        pb::Field_STRING => {
             let mut len: size_t = 0;
             let a = field.mut_value_string();
             let l = a.len();
@@ -647,7 +645,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut message::Field, ai: uint
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        message::Field_BYTES => {
+        pb::Field_BYTES => {
             let mut len: size_t = 0;
             let a = field.mut_value_bytes();
             let l = a.len();
@@ -665,7 +663,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut message::Field, ai: uint
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        message::Field_INTEGER => {
+        pb::Field_INTEGER => {
             let a = field.mut_value_integer();
             let l = a.len();
             if ai <= l {
@@ -681,7 +679,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut message::Field, ai: uint
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        message::Field_DOUBLE => {
+        pb::Field_DOUBLE => {
             let a = field.mut_value_double();
             let l = a.len();
             if ai <= l {
@@ -697,7 +695,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut message::Field, ai: uint
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        message::Field_BOOL => {
+        pb::Field_BOOL => {
             let a = field.mut_value_bool();
             let l = a.len();
             if ai <= l {
@@ -785,15 +783,15 @@ extern fn write_message(lua: *mut LUA) -> c_int {
             }
             _ => {
                 let t = match t {
-                    4 => message::Field_STRING,
-                    3 => message::Field_DOUBLE,
-                    1 => message::Field_BOOL,
-                    _ => message::Field_STRING
+                    4 => pb::Field_STRING,
+                    3 => pb::Field_DOUBLE,
+                    1 => pb::Field_BOOL,
+                    _ => pb::Field_STRING
                 };
                 match get_field_name(field.as_slice())
                 {
                     Some(name) => {
-                        let mut nf:  Option<message::Field> = None; // todo Brian better way to allow the add_fields() in None?
+                        let mut nf:  Option<pb::Field> = None; // todo Brian better way to allow the add_fields() in None?
                         let r = std::string::raw::from_buf(r as *const u8);
                         match find_field_mut(msg, name, fi as uint)
                         {
@@ -815,7 +813,7 @@ extern fn write_message(lua: *mut LUA) -> c_int {
                                 if ai != 0 {
                                     argcheck(lua, false, 5, "invalid array index");
                                 }
-                                nf = Some(message::Field::new());
+                                nf = Some(pb::Field::new());
                                 nf.get_mut_ref().set_name(name.into_string());
                                 nf.get_mut_ref().set_value_type(t);
                                 if r.len() > 0 {
@@ -842,7 +840,7 @@ extern fn write_message(lua: *mut LUA) -> c_int {
 mod test {
     use std::any::Any;
     use sandbox;
-    use message;
+    use message::pb;
 
     #[test]
     fn creation_failed() {
@@ -852,7 +850,7 @@ mod test {
         assert!(sb.state() as int == sandbox::STATE_UNKNOWN as int);
         assert!(-1 == sb.init("".as_bytes()));
         assert!(0 == sb.usage(sandbox::TYPE_MEMORY, sandbox::STAT_CURRENT));
-        let mut m = Some(message::HekaMessage::new());
+        let mut m = Some(pb::HekaMessage::new());
         let (mut rc, mm) = sb.process_message(m.take_unwrap());
         m = Some(mm);
         assert!(1 == rc);
@@ -894,7 +892,7 @@ mod test {
         let mut sb = sandbox::LuaSandbox::new("../test/hello_world.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
         assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(message::HekaMessage::new());
+        let mut m = Some(pb::HekaMessage::new());
         let (rc, mm) = sb.process_message(m.take_unwrap());
         m = Some(mm);
         assert!(rc != 0);
@@ -920,7 +918,7 @@ mod test {
         let mut sb = sandbox::LuaSandbox::new("../test/read_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
         assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(message::HekaMessage::new());
+        let mut m = Some(pb::HekaMessage::new());
         m.get_mut_ref().set_field_type(String::from_str("type"));
         m.get_mut_ref().set_logger(String::from_str("logger"));
         m.get_mut_ref().set_payload(String::from_str("payload"));
@@ -931,20 +929,20 @@ mod test {
         m.get_mut_ref().set_timestamp(999);
         m.get_mut_ref().set_severity(4);
         m.get_mut_ref().set_pid(23);
-        let mut f = message::Field::new();
+        let mut f = pb::Field::new();
         f.set_name("test".into_string());
-        f.set_value_type(message::Field_STRING);
+        f.set_value_type(pb::Field_STRING);
         f.add_value_string("foo".into_string());
         f.add_value_string("bar".into_string());
         m.get_mut_ref().add_fields(f);
-        let mut f1 = message::Field::new();
+        let mut f1 = pb::Field::new();
         f1.set_name("widget".into_string());
-        f1.set_value_type(message::Field_INTEGER);
+        f1.set_value_type(pb::Field_INTEGER);
         f1.add_value_integer(222);
         m.get_mut_ref().add_fields(f1);
-        let mut f2 = message::Field::new();
+        let mut f2 = pb::Field::new();
         f2.set_name("test".into_string());
-        f2.set_value_type(message::Field_STRING);
+        f2.set_value_type(pb::Field_STRING);
         f2.add_value_string("foo1".into_string());
         f2.add_value_string("bar1".into_string());
         m.get_mut_ref().add_fields(f2);
@@ -972,7 +970,7 @@ mod test {
          "process_message() ../test/read_message_error.lua:14: bad argument #2 to 'read_message' (field index must be >= 0)",
          "process_message() ../test/read_message_error.lua:16: bad argument #3 to 'read_message' (array index must be >= 0)"];
         let mut idx = 0;
-        let mut m = Some(message::HekaMessage::new());
+        let mut m = Some(pb::HekaMessage::new());
         for e in err.iter() {
             let mut sb = sandbox::LuaSandbox::new("../test/read_message_error.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
             assert!(sb.last_error().is_empty());
@@ -1005,50 +1003,50 @@ mod test {
         let mut sb = sandbox::LuaSandbox::new("../test/read_next_field.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
         assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(message::HekaMessage::new());
+        let mut m = Some(pb::HekaMessage::new());
 
-        let mut f = message::Field::new();
+        let mut f = pb::Field::new();
         f.set_name("foo".into_string());
         f.set_representation("test".into_string());
-        f.set_value_type(message::Field_STRING);
+        f.set_value_type(pb::Field_STRING);
         f.add_value_string("bar".into_string());
         m.get_mut_ref().add_fields(f);
 
 
-        let mut f1 = message::Field::new();
+        let mut f1 = pb::Field::new();
         f1.set_name("bytes".into_string());
-        f1.set_value_type(message::Field_BYTES);
+        f1.set_value_type(pb::Field_BYTES);
         f1.add_value_bytes(vec!['d' as u8, 'a' as u8, 't' as u8, 'a' as u8]);
         m.get_mut_ref().add_fields(f1);
 
-        let mut f2 = message::Field::new();
+        let mut f2 = pb::Field::new();
         f2.set_name("int".into_string());
-        f2.set_value_type(message::Field_INTEGER);
+        f2.set_value_type(pb::Field_INTEGER);
         f2.add_value_integer(999);
         f2.add_value_integer(1000);
         m.get_mut_ref().add_fields(f2);
 
-        let mut f3 = message::Field::new();
+        let mut f3 = pb::Field::new();
         f3.set_name("double".into_string());
-        f3.set_value_type(message::Field_DOUBLE);
+        f3.set_value_type(pb::Field_DOUBLE);
         f3.add_value_double(99.9);
         m.get_mut_ref().add_fields(f3);
 
-        let mut f4 = message::Field::new();
+        let mut f4 = pb::Field::new();
         f4.set_name("bool".into_string());
-        f4.set_value_type(message::Field_BOOL);
+        f4.set_value_type(pb::Field_BOOL);
         f4.add_value_bool(true);
         m.get_mut_ref().add_fields(f4);
 
-        let mut f5 = message::Field::new();
+        let mut f5 = pb::Field::new();
         f5.set_name("foo".into_string());
-        f5.set_value_type(message::Field_STRING);
+        f5.set_value_type(pb::Field_STRING);
         f5.add_value_string("alternate".into_string());
         m.get_mut_ref().add_fields(f5);
 
-        let mut f6 = message::Field::new();
+        let mut f6 = pb::Field::new();
         f6.set_name("false".into_string());
-        f6.set_value_type(message::Field_BOOL);
+        f6.set_value_type(pb::Field_BOOL);
         f6.add_value_bool(false);
         m.get_mut_ref().add_fields(f6);
 
@@ -1074,7 +1072,7 @@ mod test {
 
     #[test]
     fn write_message() {
-        let mut m = Some(message::HekaMessage::new());
+        let mut m = Some(pb::HekaMessage::new());
         let mut sb = sandbox::LuaSandbox::new("../test/write_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
         assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
@@ -1093,34 +1091,34 @@ mod test {
         assert!(m.get_ref().get_pid() == 12345);
         let f = m.get_ref().get_fields();
         assert!(f.len() == 6, "{}", f.len());
-        assert!(f[0].get_value_type() == message::Field_STRING, "{}", f[0].get_value_type() as int);
+        assert!(f[0].get_value_type() == pb::Field_STRING, "{}", f[0].get_value_type() as int);
         assert!(f[0].get_name().as_slice() == "String");
         assert!(f[0].get_value_string().len() == 1);
         assert!(f[0].get_value_string()[0].as_slice() == "foo");
         assert!(!f[0].has_representation());
-        assert!(f[1].get_value_type() == message::Field_DOUBLE, "{}", f[1].get_value_type() as int);
+        assert!(f[1].get_value_type() == pb::Field_DOUBLE, "{}", f[1].get_value_type() as int);
         assert!(f[1].get_name().as_slice() == "Float");
         assert!(f[1].get_value_double().len() == 1);
         assert!(f[1].get_value_double()[0] == 1.2345);
         assert!(!f[1].has_representation());
-        assert!(f[2].get_value_type() == message::Field_DOUBLE, "{}", f[2].get_value_type() as int);
+        assert!(f[2].get_value_type() == pb::Field_DOUBLE, "{}", f[2].get_value_type() as int);
         assert!(f[2].get_name().as_slice() == "Int");
         assert!(f[2].get_value_double().len() == 2);
         assert!(f[2].get_value_double()[0] == 123f64);
         assert!(f[2].get_value_double()[1] == 456f64);
         assert!(f[2].get_representation().as_slice() == "count");
-        assert!(f[3].get_value_type() == message::Field_BOOL, "{}", f[3].get_value_type() as int);
+        assert!(f[3].get_value_type() == pb::Field_BOOL, "{}", f[3].get_value_type() as int);
         assert!(f[3].get_name().as_slice() == "Bool");
         assert!(f[3].get_value_bool().len() == 1);
         assert!(f[3].get_value_bool()[0] == true);
         assert!(!f[3].has_representation());
-        assert!(f[4].get_value_type() == message::Field_BOOL, "{}", f[4].get_value_type() as int);
+        assert!(f[4].get_value_type() == pb::Field_BOOL, "{}", f[4].get_value_type() as int);
         assert!(f[4].get_name().as_slice() == "Bool");
         assert!(f[4].get_value_bool().len() == 2);
         assert!(f[4].get_value_bool()[0] == false);
         assert!(f[4].get_value_bool()[1] == false);
         assert!(!f[4].has_representation());
-        assert!(f[5].get_value_type() == message::Field_STRING, "{}", f[5].get_value_type() as int);
+        assert!(f[5].get_value_type() == pb::Field_STRING, "{}", f[5].get_value_type() as int);
         assert!(f[5].get_name().as_slice() == "");
         assert!(f[5].get_value_string().len() == 1);
         assert!(f[5].get_value_string()[0].as_slice() == "bad idea");
@@ -1150,7 +1148,7 @@ mod test {
             "process_message() ../test/write_message_error.lua:43: bad argument #1 to 'write_message' (field type mis-match)"
         ];
         let mut idx = 0;
-        let mut m = Some(message::HekaMessage::new());
+        let mut m = Some(pb::HekaMessage::new());
         for e in err.iter() {
             let mut sb = sandbox::LuaSandbox::new("../test/write_message_error.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
             assert!(sb.last_error().is_empty());

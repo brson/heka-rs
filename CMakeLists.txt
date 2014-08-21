@@ -16,16 +16,20 @@ include(externals)
 find_package(Rust 0.12.0 REQUIRED)
 find_package(Protobuf 2.3 QUIET)
 
-set(MESSAGE_PROTO_OUT "${CMAKE_SOURCE_DIR}/src/message.rs")
+set(MESSAGE_PROTO_OUT "${CMAKE_SOURCE_DIR}/src/message/pb.rs")
 add_custom_command(
 OUTPUT ${MESSAGE_PROTO_OUT}
-COMMAND ${CMAKE_COMMAND} -DPROTOBUF_EXECUTABLE="${PROTOBUF_EXECUTABLE}" -DRUST_PLUGIN="${PROJECT_PATH}/bin/protoc-gen-rust" -DMESSAGE_DIR="${CMAKE_SOURCE_DIR}/src" -P "${CMAKE_SOURCE_DIR}/cmake/message_proto.cmake"
-DEPENDS rust-protobuf "${CMAKE_SOURCE_DIR}/src/message.proto"
+COMMAND ${CMAKE_COMMAND} -DPROTOBUF_EXECUTABLE="${PROTOBUF_EXECUTABLE}" -DRUST_PLUGIN="${PROJECT_PATH}/bin/protoc-gen-rust" -DMESSAGE_DIR="${CMAKE_SOURCE_DIR}/src/message" -P "${CMAKE_SOURCE_DIR}/cmake/message_proto.cmake"
+DEPENDS rust-protobuf "${CMAKE_SOURCE_DIR}/src/message/message.proto"
 COMMENT "Built ${MESSAGE_PROTO_OUT}"
 )
 
 add_custom_target(heka_rs ALL
 ${RUST_EXECUTABLE} -O -L "${PROJECT_PATH}/lib" -o heka_test "${CMAKE_SOURCE_DIR}/src/heka_rs.rs"
+DEPENDS lua_sandbox rust-protobuf ${MESSAGE_PROTO_OUT})
+
+add_custom_target(heka_cat ALL
+${RUST_EXECUTABLE} -O -L "${PROJECT_PATH}/lib" -o heka_cat "${CMAKE_SOURCE_DIR}/src/heka_cat.rs"
 DEPENDS lua_sandbox rust-protobuf ${MESSAGE_PROTO_OUT})
 
 add_custom_target(unit_tests ALL

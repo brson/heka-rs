@@ -3,6 +3,10 @@ if(NOT PROTOBUF_EXECUTABLE)
 endif()
 
 execute_process(
-COMMAND ${PROTOBUF_EXECUTABLE} --rust_out=. --plugin=${RUST_PLUGIN} message.proto
+COMMAND ${PROTOBUF_EXECUTABLE} --rust_out=. --plugin=${RUST_PLUGIN} message.proto;
+WORKING_DIRECTORY ${MESSAGE_DIR}
+)
+execute_process(
+COMMAND ${CMAKE_COMMAND} -E rename message.rs pb.rs
 WORKING_DIRECTORY ${MESSAGE_DIR}
 )

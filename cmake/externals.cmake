@@ -11,7 +11,7 @@ set(SANDBOX_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=$
 externalproject_add(
     lua_sandbox
     GIT_REPOSITORY https://github.com/mozilla-services/lua_sandbox.git
-    GIT_TAG 3da8912fe29e3fdd865b7f476d79cbe300d6af74
+    GIT_TAG 1fcca458f494a9b051122fb992e370af1cb11954
     CMAKE_ARGS ${SANDBOX_ARGS}
     INSTALL_DIR ${PROJECT_PATH}
     )

@@ -92,6 +92,8 @@ impl<R: Reader> HekaProtobufStream<R> {
     fn read(&mut self, required: uint) -> IoResult<uint> {
         if required > self.cap {
             self.offset += (self.read_pos - self.scan_pos) as u64;
+            self.read_pos = 0;
+            self.scan_pos = 0;
             return Err(IoError {
                     kind: OtherIoError,
                     desc: "Record exceeds capacity",

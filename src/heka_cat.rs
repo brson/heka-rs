@@ -1,3 +1,4 @@
+#![feature(phase)]
 #![feature(globs)]
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
@@ -6,6 +7,9 @@ extern crate std;
 extern crate protobuf; // depend on rust-protobuf runtime
 extern crate getopts;
 extern crate libc;
+#[phase(plugin)]
+extern crate regex_macros;
+extern crate regex;
 
 use std::path::Path;
 use std::io::fs::File;
@@ -16,6 +20,7 @@ use getopts::{optopt,optflag,getopts,OptGroup};
 use protobuf::clear::Clear;
 use protobuf::Message;
 use message::pb;
+use message::matcher;
 
 mod message; // add generated file to the project
 mod sandbox;
@@ -53,6 +58,15 @@ fn main() {
         return;
     };
 
+
+    let m = match matches.opt_str("m") {
+        Some(m) => m,
+        None => "TRUE".into_string(),
+    };
+    let mm = match matcher::Matcher::new(m.as_slice()) {
+        Ok(m) => m,
+        Err(e) => fail!("invalid match at position({}): {}", e.pos, e.msg),
+    };
     let path : Path = Path::new(input);
     let mut hps = splitter::HekaProtobufStream::new(File::open(&path), 1024*64+255+3); // max message size + header + seperators
     let mut lsb = sandbox::LuaSandbox::new("../test/fxa_active_daily_users.lua".as_bytes(), "heka_rs/modules".as_bytes(), 0, 0, 0);
@@ -79,11 +93,7 @@ fn main() {
                     msg.get_mut_ref().clear();
                     msg.get_mut_ref().merge_from(&mut cis); // todo: warning this asserts on corrupt records
                     if msg.get_ref().is_initialized() {
-                        if msg.get_ref().get_logger() == "FxaAuth"
-                        && msg.get_ref().get_field_type() == "request.summary"
-                        && message::match_field(msg.get_ref(), "path", 0, 0, "/v1/certificate/sign")
-                        && message::match_field_numeric(msg.get_ref(), "errno", 0, 0, 0f64)
-                        { // todo implement matcher
+                        if mm.is_match(msg.get_ref()) {
                             match_count += 1;
                             let (rc, mm) = lsb.process_message(msg.take_unwrap());
                             msg = Some(mm);

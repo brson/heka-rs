@@ -34,6 +34,6 @@ DEPENDS lua_sandbox rust-protobuf ${MESSAGE_PROTO_OUT})
 
 add_custom_target(unit_tests ALL
 ${RUST_EXECUTABLE} -L "${PROJECT_PATH}/lib" -o unit_tests --test "${CMAKE_SOURCE_DIR}/src/heka_rs.rs"
-DEPENDS heka_rs)
+DEPENDS lua_sandbox rust-protobuf ${MESSAGE_PROTO_OUT})
 
 add_test(unit_tests unit_tests)

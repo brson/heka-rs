@@ -1,4 +1,5 @@
 pub mod pb; // add generated file to the project
+pub mod matcher;
 
 pub fn find_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint) -> Option<&'a pb::Field> {
     let mut cnt = 0u;
@@ -13,23 +14,39 @@ pub fn find_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint) -> Option<
     None
 }
 
-pub fn match_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint, val: &str) -> bool {
+pub fn get_field_string<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint) -> Option<&'a String> {
     match find_field(msg, name, fi as uint)
     {
         Some(f) => {
             let a = f.get_value_string();
             let l = a.len();
-            if ai < l &&  a[ai].as_slice() == val {
-                true
+            if ai < l {
+                Some(&a[ai])
             } else {
-                false
+                None
             }
         },
-        None => {false}
+        None => None,
     }
 }
 
-pub fn match_field_numeric<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint, val: f64) -> bool {
+pub fn get_field_bool<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint) -> Option<bool> {
+    match find_field(msg, name, fi as uint)
+    {
+        Some(f) => {
+            let a = f.get_value_bool();
+            let l = a.len();
+            if ai < l {
+                Some(a[ai])
+            } else {
+                None
+            }
+        },
+        None => None,
+    }
+}
+
+pub fn get_field_number<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint) -> Option<f64> {
     match find_field(msg, name, fi as uint)
     {
         Some(f) => {
@@ -37,24 +54,24 @@ pub fn match_field_numeric<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, a
                 pb::Field_INTEGER => {
                     let a = f.get_value_integer();
                     let l = a.len();
-                    if ai < l &&  a[ai] == val as i64 {
-                        true
+                    if ai < l {
+                        Some(a[ai] as f64)
                     } else {
-                        false
+                        None
                     }
                 },
                 pb::Field_DOUBLE => {
                     let a = f.get_value_double();
                     let l = a.len();
-                    if ai < l &&  a[ai] == val {
-                        true
+                    if ai < l {
+                        Some(a[ai] as f64)
                     } else {
-                        false
+                        None
                     }
                 },
-                _ => false
+                _ => None,
             }
         },
-        None => false
+        None => None,
     }
 }

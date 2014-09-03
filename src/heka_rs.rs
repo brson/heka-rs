@@ -1,3 +1,4 @@
+#![feature(phase)]
 #![feature(globs)]
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
@@ -5,6 +6,9 @@
 extern crate std;
 extern crate protobuf; // depend on rust-protobuf runtime
 extern crate libc;
+#[phase(plugin)]
+extern crate regex_macros;
+extern crate regex;
 
 use std::path::Path;
 use std::io::fs::File;

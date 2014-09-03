@@ -843,23 +843,6 @@ mod test {
     use message::pb;
 
     #[test]
-    fn creation_failed() {
-        let mut sb = sandbox::LuaSandbox::new("".as_bytes(), "".as_bytes(), 32767, 1000, 9*1024*1024);
-        // make sure all the functions properly handle the bad state
-        assert!(sb.last_error().as_slice() == "creation failed");
-        assert!(sb.state() as int == sandbox::STATE_UNKNOWN as int);
-        assert!(-1 == sb.init("".as_bytes()));
-        assert!(0 == sb.usage(sandbox::TYPE_MEMORY, sandbox::STAT_CURRENT));
-        let mut m = Some(pb::HekaMessage::new());
-        let (mut rc, mm) = sb.process_message(m.take_unwrap());
-        m = Some(mm);
-        assert!(1 == rc);
-        rc = sb.timer_event(0);
-        assert!(1 == rc);
-        assert!(sb.destroy("".as_bytes()).is_empty());
-    }
-
-    #[test]
     fn init_failed() {
         let mut sb = sandbox::LuaSandbox::new("../test/not_found.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
         assert!(sb.last_error().is_empty());

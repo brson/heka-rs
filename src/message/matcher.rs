@@ -649,6 +649,7 @@ fn test_number(f: f64, n: &Box<Node>) -> bool {
 
 #[cfg(test)]
 mod test {
+    extern crate test;
     use message::matcher;
     use message::pb;
 
@@ -709,7 +710,7 @@ mod test {
         msg.set_hostname("example.com".into_string());
         add_field_string(&mut msg, "foo", "bar");
         add_field_integer(&mut msg, "number", 64);
-        add_field_bytes(&mut msg, "data", vec!['d' as u8, 'a' as u8, 't' as u8, 'a' as u8]);
+        add_field_bytes(&mut msg, "data", b"data".to_vec());
         add_field_integer(&mut msg, "int", 999);
         add_field_double(&mut msg, "double", 99.9);
         add_field_bool(&mut msg, "bool", true);
@@ -727,45 +728,6 @@ mod test {
             Err(e) => fail!("{}", e.msg),
         };
         mm.is_match(m)
-    }
-
-    #[test]
-    fn successful_creation() {
-        assert!(matcher::Matcher::new("TRUE").is_ok());
-        assert!(matcher::Matcher::new(" FALSE  ").is_ok());
-        assert!(matcher::Matcher::new("Type == 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Type != 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Type >= 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Type <= 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Type > 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Type < 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Logger== 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Hostname =='foo'").is_ok());
-        assert!(matcher::Matcher::new("EnvVersion=='foo'").is_ok());
-        assert!(matcher::Matcher::new(r"Payload   ==  'foo\''").is_ok());
-        assert!(matcher::Matcher::new("Uuid == 'foo'").is_ok());
-        assert!(matcher::Matcher::new("Timestamp == 6").is_ok());
-        assert!(matcher::Matcher::new("Severity == 6").is_ok());
-        assert!(matcher::Matcher::new("Pid == 6").is_ok());
-        assert!(matcher::Matcher::new("Pid != 6").is_ok());
-        assert!(matcher::Matcher::new("Pid >= 6").is_ok());
-        assert!(matcher::Matcher::new("Pid <= 6").is_ok());
-        assert!(matcher::Matcher::new("Pid > 6").is_ok());
-        assert!(matcher::Matcher::new("Pid < 6").is_ok());
-        assert!(matcher::Matcher::new("Type =~ /^foo$/").is_ok());
-        assert!(matcher::Matcher::new("Logger=~ /^foo$/").is_ok());
-        assert!(matcher::Matcher::new("Hostname =~/^foo$/").is_ok());
-        assert!(matcher::Matcher::new("EnvVersion=~/^foo$/").is_ok());
-        assert!(matcher::Matcher::new("Payload   =~  /^foo$/").is_ok());
-        assert!(matcher::Matcher::new("Uuid =~ /^foo$/").is_ok());
-        assert!(matcher::Matcher::new("Fields[] == 0").is_ok());
-        assert!(matcher::Matcher::new("Fields[foo] !~ /^foo$/").is_ok());
-        assert!(matcher::Matcher::new("Fields[foo] == \"bar\"").is_ok());
-        assert!(matcher::Matcher::new("Fields[foo] == NIL").is_ok());
-        assert!(matcher::Matcher::new("Fields[foo] == TRUE").is_ok());
-        assert!(matcher::Matcher::new("Fields[foo] == FALSE").is_ok());
-        assert!(matcher::Matcher::new("Fields[0][0] == FALSE").is_ok());
-        assert!(matcher::Matcher::new("Type == 'test' && (Severity==7 || Payload == 'Test Payload')").is_ok());
     }
 
     #[test]
@@ -801,12 +763,46 @@ mod test {
     }
 
     #[test]
+    fn failed_match() {
+        let msg = get_test_message();
+        assert!(!test_match(&msg, "FALSE"));
+        assert!(!test_match(&msg, "Type == 'test'&&(Severity==7||Payload=='Test Payload')"));
+        assert!(!test_match(&msg, "EnvVersion == '0.9'"));
+        assert!(!test_match(&msg, "EnvVersion != '0.8'"));
+        assert!(!test_match(&msg, "EnvVersion > '0.9'"));
+        assert!(!test_match(&msg, "EnvVersion >= '0.9'"));
+        assert!(!test_match(&msg, "EnvVersion < '0.8'"));
+        assert!(!test_match(&msg, "EnvVersion <= '0.7'"));
+        assert!(!test_match(&msg, "Severity == 5"));
+        assert!(!test_match(&msg, "Severity != 6"));
+        assert!(!test_match(&msg, "Severity < 6"));
+        assert!(!test_match(&msg, "Severity <= 5"));
+        assert!(!test_match(&msg, "Severity > 6"));
+        assert!(!test_match(&msg, "Severity >= 7"));
+        assert!(!test_match(&msg, "Fields[foo] == 'ba'"));
+        assert!(!test_match(&msg, "Fields[foo][1] == 'bar'"));
+        assert!(!test_match(&msg, "Fields[foo][0][1] == 'bar'"));
+        assert!(!test_match(&msg, "Fields[bool] == FALSE"));
+        assert!(!test_match(&msg, "Type =~ /Test/"));
+        assert!(!test_match(&msg, "Type !~ /TEST/"));
+        assert!(!test_match(&msg, "Payload =~ /^Payload/"));
+        assert!(!test_match(&msg, "Type == \"te'st\""));
+        assert!(!test_match(&msg, "Type == 'te\"st'"));
+        assert!(!test_match(&msg, "Fields[int] =~ /999/"));
+        assert!(!test_match(&msg, "Fields[zero] == \"0\""));
+        assert!(!test_match(&msg, "Fields[string] == 43"));
+        assert!(!test_match(&msg, "Fields[int] == NIL"));
+        assert!(!test_match(&msg, "Fields[int][0][1] == NIL"));
+        assert!(!test_match(&msg, "Fields[missing] != NIL"));
+    }
+
+    #[test]
     fn successful_match() {
         let msg = get_test_message();
         assert!(test_match(&msg, "TRUE"));
         assert!(test_match(&msg, "(Severity == 7 || Payload == 'Test Payload') && Type == 'TEST'"));
-        assert!(test_match(&msg, "EnvVersion == \"0.8\""));
-        assert!(test_match(&msg, "EnvVersion == '0.8'"));
+        assert!(test_match(&msg, "EnvVersion==\"0.8\""));
+        assert!(test_match(&msg, " EnvVersion  ==  '0.8' "));
         assert!(test_match(&msg, "EnvVersion != '0.9'"));
         assert!(test_match(&msg, "EnvVersion > '0.7'"));
         assert!(test_match(&msg, "EnvVersion >= '0.8'"));
@@ -851,10 +847,79 @@ mod test {
         assert!(test_match(&msg, "Fields[missing] == NIL"));
     }
 
-    #[test]
-    fn failed_match() {
+    #[bench]
+    fn create(b: &mut test::Bencher) {
+        b.iter(|| matcher::Matcher::new("Type == 'Test' && Severity == 6"));
+    }
+
+    #[bench]
+    fn match_simple(b: &mut test::Bencher) {
         let msg = get_test_message();
-        assert!(!test_match(&msg, "FALSE"));
+        let mm = match matcher::Matcher::new("Type == 'TEST' && Severity == 6") {
+            Ok(m) => m,
+            Err(e) => fail!("{}", e.msg),
+        };
+        b.iter(|| mm.is_match(&msg));
+    }
+
+    #[bench]
+    fn match_re(b: &mut test::Bencher) {
+        let msg = get_test_message();
+        let mm = match matcher::Matcher::new("Type =~ /^TEST/ && Severity == 6") {
+            Ok(m) => m,
+            Err(e) => fail!("{}", e.msg),
+        };
+        b.iter(|| mm.is_match(&msg));
+    }
+
+    #[bench]
+    fn match_re_capture(b: &mut test::Bencher) {
+        let msg = get_test_message();
+        let mm = match matcher::Matcher::new("Type =~ /^(TEST)/ && Severity == 6") {
+            Ok(m) => m,
+            Err(e) => fail!("{}", e.msg),
+        };
+        b.iter(|| mm.is_match(&msg));
+    }
+
+    #[bench]
+    fn match_field_string(b: &mut test::Bencher) {
+        let msg = get_test_message();
+        let mm = match matcher::Matcher::new("Fields[foo] == 'bar' && Severity == 6") {
+            Ok(m) => m,
+            Err(e) => fail!("{}", e.msg),
+        };
+        b.iter(|| mm.is_match(&msg));
+    }
+
+    #[bench]
+    fn match_field_number(b: &mut test::Bencher) {
+        let msg = get_test_message();
+        let mm = match matcher::Matcher::new("Fields[number] == 64 && Severity == 6") {
+            Ok(m) => m,
+            Err(e) => fail!("{}", e.msg),
+        };
+        b.iter(|| mm.is_match(&msg));
+    }
+
+    #[bench]
+    fn match_field_non_existence(b: &mut test::Bencher) {
+        let msg = get_test_message();
+        let mm = match matcher::Matcher::new("Fields[missing] == NIL") {
+            Ok(m) => m,
+            Err(e) => fail!("{}", e.msg),
+        };
+        b.iter(|| mm.is_match(&msg));
+    }
+
+    #[bench]
+    fn match_field_existence(b: &mut test::Bencher) {
+        let msg = get_test_message();
+        let mm = match matcher::Matcher::new("Fields[int] != NIL") {
+            Ok(m) => m,
+            Err(e) => fail!("{}", e.msg),
+        };
+        b.iter(|| mm.is_match(&msg));
     }
 }
 

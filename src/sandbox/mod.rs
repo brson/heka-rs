@@ -999,7 +999,7 @@ mod test {
         let mut f1 = pb::Field::new();
         f1.set_name("bytes".into_string());
         f1.set_value_type(pb::Field_BYTES);
-        f1.add_value_bytes(vec!['d' as u8, 'a' as u8, 't' as u8, 'a' as u8]);
+        f1.add_value_bytes(b"data".to_vec());
         m.get_mut_ref().add_fields(f1);
 
         let mut f2 = pb::Field::new();

@@ -876,8 +876,7 @@ mod test {
         assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let mut m = Some(pb::HekaMessage::new());
-        let (rc, mm) = sb.process_message(m.take_unwrap());
-        m = Some(mm);
+        let (rc, _) = sb.process_message(m.take_unwrap());
         assert!(rc != 0);
         assert!(sb.state() as int == sandbox::STATE_TERMINATED as int);
         assert!(sb.last_error().as_slice() == "process_message() function was not found");
@@ -929,8 +928,7 @@ mod test {
         f2.add_value_string("foo1".into_string());
         f2.add_value_string("bar1".into_string());
         m.get_mut_ref().add_fields(f2);
-        let (rc, mm) = sb.process_message(m.take_unwrap());
-        m = Some(mm);
+        let (rc, _) = sb.process_message(m.take_unwrap());
         assert!(rc == 0, "{}", sb.last_error());
         assert!(sb.destroy("".as_bytes()).is_empty());
     }

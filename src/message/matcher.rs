@@ -518,52 +518,25 @@ fn evaluate_node(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
                     _ => false,
                 }
             } else {
-                // todo may just want to match on the actual field type and call the test_x functions
-                match n.value { // todo figure out what we are doing with byte array comparison
+                match n.value { // todo figure out what we are doing with byte array comparison, for now it will always be false
                     Text(ref s) => {
                         let a = message::get_field_string(m, n.variable.as_slice(), n.fi, n.ai);
                         match a {
-                            Some(a) => { // todo remove duplicate test code
-                                match n.op {
-                                    Equal => a == s,
-                                    NotEqual => a != s,
-                                    Lt => a < s,
-                                    LtEqual => a <= s,
-                                    Gt => a > s,
-                                    GtEqual => a >= s,
-                                    _ => false,
-                                }
-                            },
+                            Some(a) => compare_string(&n.op, a.as_slice(), s.as_slice()),
                             None => false,
                         }
                     },
                     Number(f) => {
                         let a = message::get_field_number(m, n.variable.as_slice(), n.fi, n.ai);
                         match a {
-                            Some(a) => { // todo remove duplicate test code
-                                match n.op {
-                                    Equal => f == a,
-                                    NotEqual => f != a,
-                                    Lt => f < a,
-                                    LtEqual => f <= a,
-                                    Gt => f > a,
-                                    GtEqual => f >= a,
-                                    _ => false,
-                                }
-                            },
+                            Some(a) => compare_number(&n.op, a, f),
                             None => false,
                         }
                     },
                     Re(ref r) => {
                         let a = message::get_field_string(m, n.variable.as_slice(), n.fi, n.ai);
                         match a {
-                            Some(a) => { // todo remove duplicate test code
-                                match n.op {
-                                    ReEqual => r.is_match(a.as_slice()),
-                                    ReNotEqual => !r.is_match(a.as_slice()),
-                                    _ => false,
-                                }
-                            },
+                            Some(a) => compare_re(&n.op, a.as_slice(), r),
                             None => false,
                         }
                     },
@@ -574,7 +547,7 @@ fn evaluate_node(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
                                 match n.op {
                                     Equal => a == b,
                                     NotEqual => a != b,
-                                    _ => false,
+                                    _ => fail!("invalid bool comparison operator"),
                                 }
                             },
                             None => false,
@@ -597,7 +570,7 @@ fn evaluate_node(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
                         match n.op {
                             Equal => r,
                             NotEqual => !r,
-                            _ => fail!("invalid NIL comparison"),
+                            _ => fail!("invalid NIL comparison operator"),
                         }
                     },
                 }
@@ -606,44 +579,59 @@ fn evaluate_node(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
     }
 }
 
-fn test_string(a: &str, n: &Box<Node>) -> bool {
-    match n.value {
-        Text(ref s) => {
-            match n.op {
-                Equal => a == s.as_slice(),
-                NotEqual => a != s.as_slice(),
-                Lt => a < s.as_slice(),
-                LtEqual => a <= s.as_slice(),
-                Gt => a > s.as_slice(),
-                GtEqual => a >= s.as_slice(),
-                _ => false,
-            }
-        },
-        Re(ref r) => {
-            match n.op {
-                ReEqual => r.is_match(a),
-                ReNotEqual => !r.is_match(a),
-                _ => false,
-            }
-        },
-        _ => false,
+#[inline(always)]
+fn compare_string(op: &Op, a: &str, b: &str) -> bool {
+    match op {
+        &Equal => a == b,
+        &NotEqual => a != b,
+        &Lt => a < b,
+        &LtEqual => a <= b,
+        &Gt => a > b,
+        &GtEqual => a >= b,
+        _ => fail!("invalid string comparison operator"),
     }
 }
 
-fn test_number(f: f64, n: &Box<Node>) -> bool {
+#[inline(always)]
+fn compare_re(op: &Op, a: &str, b: &Regex) -> bool {
+    match op {
+        &ReEqual => b.is_match(a),
+        &ReNotEqual => !b.is_match(a),
+        _ => fail!("invalid re comparison operator"),
+    }
+}
+
+#[inline(always)]
+fn compare_number(op: &Op, a: f64, b: f64) -> bool {
+    match op {
+        &Equal => a == b,
+        &NotEqual => a != b,
+        &Lt => a < b,
+        &LtEqual => a <= b,
+        &Gt => a > b,
+        &GtEqual => a >= b,
+        _ => fail!("invalid number comparison operator"),
+    }
+}
+
+fn test_string(a: &str, n: &Box<Node>) -> bool {
     match n.value {
-        Number(v) => {
-            match n.op {
-                Equal => f == v,
-                NotEqual => f != v,
-                Lt => f < v,
-                LtEqual => f <= v,
-                Gt => f > v,
-                GtEqual => f >= v,
-                _ => false,
-            }
+        Text(ref s) => {
+            compare_string(&n.op, a, s.as_slice())
         },
-        _ => false,
+        Re(ref r) => {
+            compare_re(&n.op, a, r)
+        },
+        _ => fail!("unexpected value for test_string"),
+    }
+}
+
+fn test_number(a: f64, n: &Box<Node>) -> bool {
+    match n.value {
+        Number(f) => {
+            compare_number(&n.op, a, f)
+        },
+        _ => fail!("unexpected value for test_number"),
     }
 }
 

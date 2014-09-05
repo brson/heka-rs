@@ -689,7 +689,6 @@ mod test {
         // todo set uuid
         msg.set_timestamp(9000000000);
         msg.set_field_type("TEST".into_string());
-        msg.set_logger("UnitTest".into_string());
         msg.set_severity(6);
         msg.set_payload("Test Payload".into_string());
         msg.set_env_version("0.8".into_string());

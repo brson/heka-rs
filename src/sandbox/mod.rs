@@ -50,21 +50,25 @@ struct SandboxConfig {
     config: HashMap<String, Box<Any>>
 }
 
+//pub type InjectMessageFunction<'a> = |msg: &'a pb::HekaMessage|: 'a -> c_int;
+//pub type InjectPayloadFunction<'a> = |name: &'a String, typ: &'a String, payload: &'a String|: 'a -> c_int;
 pub enum LSB {}
 pub enum LUA {}
-pub struct LuaSandbox {
+pub struct LuaSandbox<'a> {
     msg: std::option::Option<pb::HekaMessage>,
     lsb: *mut LSB,
     config: SandboxConfig,
-    field_iterator: uint
+    field_iterator: uint,
+//    inject_message: Option<InjectMessageFunction>,
+//    inject_payload: Option<InjectPayloadFunction>,
 }
 
-impl LuaSandbox {
+impl<'a> LuaSandbox<'a> {
     pub fn new(lua_file: &[u8],
                require_path: &[u8],
                memory_limit: c_uint,
                instruction_limit: c_uint,
-               output_limit: c_uint) -> Box<LuaSandbox> {
+               output_limit: c_uint) -> Box<LuaSandbox<'a>> {
         unsafe {
             let cfg = SandboxConfig {
                 config: HashMap::new()
@@ -74,7 +78,9 @@ impl LuaSandbox {
                 msg: None,
                 lsb: std::ptr::mut_null(),
                 config: cfg,
-                field_iterator: 0
+                field_iterator: 0,
+                // inject_message: None,
+                // inject_payload: None,
             };
             // Convert our owned box into an unsafe pointer, making
             // sure that we're passing a pointer into the heap to
@@ -89,7 +95,7 @@ impl LuaSandbox {
                 s.lsb = lsb_create(unsafe_s, lf, rp, memory_limit, instruction_limit, output_limit);
                 });
             });
-            return s;
+            s
         }
     }
 
@@ -154,7 +160,7 @@ impl LuaSandbox {
     pub fn last_error(&mut self) -> String {
         unsafe {
             if self.lsb == std::ptr::mut_null() {
-                return String::from_str("creation failed");
+                return String::from_str("no sandbox");
             }
             let c = lsb_get_error(self.lsb);
             if c != std::ptr::null() {
@@ -321,6 +327,12 @@ extern fn inject_message(lua: *mut LUA) -> c_int {
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
+//        let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+//        assert!(!sandbox.is_null());
+//        if (*sandbox).inject_message.is_none() {
+//            return 0;
+//        }
+
         if lsb_output_protobuf(lsb, 1, 0) != 0 {
             let err = format!("inject_message() could not encode protobuf: {}", lsb_get_error(lsb));
             lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
@@ -330,9 +342,12 @@ extern fn inject_message(lua: *mut LUA) -> c_int {
         let mut len: size_t = 0;
         let c = lsb_get_output(lsb, &mut len);
         if len != 0 {
-            // todo hand it back to a Rust callback
-            let m = std::slice::raw::buf_as_slice(c as *const u8, len as uint, protobuf::parse_from_bytes::<pb::HekaMessage>);
-            println!("timestamp:{} fields:{}", m.get_timestamp(), m.get_fields());
+//            let r = todo_inject_function_ptr(std::slice::raw::buf_as_slice(c as *const u8, len as uint, protobuf::parse_from_bytes::<pb::HekaMessage>));
+//            if 0 != r {
+//                let err = format!("inject_message() failed: {}", r);
+//                lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
+//                return lua_error(lua);
+//            }
         }
         return 0;
     }
@@ -344,6 +359,12 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
+//        let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+//        assert!(!sandbox.is_null());
+//        if (*sandbox).inject_payload.is_none() {
+//            return 0;
+//        }
+
         let mut len: size_t = 0;
         let mut typ = String::from_str("txt");
         let mut name = String::new();
@@ -363,8 +384,12 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
         }
         let c = lsb_get_output(lsb, &mut len);
         if len != 0 {
-            // todo hand it back to a Rust callback
-            println!("name:'{}' type:'{}' output:'{}'", name, typ, std::str::raw::from_buf_len(c as *const u8, len as uint)); // allow embedded nulls
+//            let r = todo_payload_function_ptr(name, typ, std::string::raw::from_buf_len(c as *const u8, len as uint));
+//            if 0 != r {
+//                let err = format!("inject_payload() failed: {}", r);
+//                lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
+//                return lua_error(lua);
+//            }
         }
         return 0;
     }
@@ -838,14 +863,72 @@ extern fn write_message(lua: *mut LUA) -> c_int {
 
 #[cfg(test)]
 mod test {
+    extern crate test;
     use std::any::Any;
     use sandbox;
     use message::pb;
 
+    fn get_test_message() -> pb::HekaMessage {
+        let mut msg = pb::HekaMessage::new();
+        // todo set uuid
+        msg.set_timestamp(5123456789);
+        msg.set_field_type("TEST".into_string());
+        msg.set_logger("GoSpec".into_string());
+        msg.set_severity(6);
+        msg.set_env_version("0.8".into_string());
+        msg.set_pid(9283);
+        msg.set_hostname("example.com".into_string());
+
+        let mut f0 = pb::Field::new();
+        f0.set_value_type(pb::Field_STRING);
+        f0.set_name("foo".into_string());
+        f0.add_value_string("bar".into_string());
+        f0.set_representation("test".into_string());
+        msg.add_fields(f0);
+
+        let mut f1 = pb::Field::new();
+        f1.set_value_type(pb::Field_BYTES);
+        f1.set_name("bytes".into_string());
+        f1.add_value_bytes(b"data".to_vec());
+        msg.add_fields(f1);
+
+        let mut f2 = pb::Field::new();
+        f2.set_value_type(pb::Field_INTEGER);
+        f2.set_name("int".into_string());
+        f2.add_value_integer(999);
+        f2.add_value_integer(1024);
+        msg.add_fields(f2);
+
+        let mut f3 = pb::Field::new();
+        f3.set_value_type(pb::Field_DOUBLE);
+        f3.set_name("double".into_string());
+        f3.add_value_double(99.9);
+        msg.add_fields(f3);
+
+        let mut f4 = pb::Field::new();
+        f4.set_value_type(pb::Field_BOOL);
+        f4.set_name("bool".into_string());
+        f4.add_value_bool(true);
+        msg.add_fields(f4);
+
+        let mut f5 = pb::Field::new();
+        f5.set_value_type(pb::Field_STRING);
+        f5.set_name("foo".into_string());
+        f5.add_value_string("alternate".into_string());
+        msg.add_fields(f5);
+
+        let mut f6 = pb::Field::new();
+        f6.set_value_type(pb::Field_BOOL);
+        f6.set_name("false".into_string());
+        f6.add_value_bool(false);
+        msg.add_fields(f6);
+
+        return msg
+    }
+
     #[test]
     fn init_failed() {
         let mut sb = sandbox::LuaSandbox::new("../test/not_found.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
-        assert!(sb.last_error().is_empty());
         assert!(0 != sb.init("".as_bytes()));
         assert!(sb.state() as int == sandbox::STATE_TERMINATED as int);
         assert!(sb.last_error().as_slice() == "cannot open ../test/not_found.lua: No such file or directory");
@@ -855,7 +938,6 @@ mod test {
     #[test]
     fn init() {
         let mut sb = sandbox::LuaSandbox::new("../test/hello_world.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
-        assert!(sb.last_error().is_empty());
         assert!(1000 == sb.usage(sandbox::TYPE_INSTRUCTION, sandbox::STAT_LIMIT));
         assert!(1024 == sb.usage(sandbox::TYPE_OUTPUT, sandbox::STAT_LIMIT));
         assert!(0 == sb.init("".as_bytes()));
@@ -873,7 +955,6 @@ mod test {
     #[test]
     fn process_message_missing() {
         let mut sb = sandbox::LuaSandbox::new("../test/hello_world.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
-        assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let mut m = Some(pb::HekaMessage::new());
         let (rc, _) = sb.process_message(m.take_unwrap());
@@ -886,7 +967,6 @@ mod test {
     #[test]
     fn timer_event_missing() {
         let mut sb = sandbox::LuaSandbox::new("../test/hello_world.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
-        assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let rc = sb.timer_event(0);
         assert!(rc != 0);
@@ -898,7 +978,6 @@ mod test {
     #[test]
     fn read_message() {
         let mut sb = sandbox::LuaSandbox::new("../test/read_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
-        assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let mut m = Some(pb::HekaMessage::new());
         m.get_mut_ref().set_field_type(String::from_str("type"));
@@ -936,7 +1015,6 @@ mod test {
     #[test]
     fn read_message_not_available() {
         let mut sb = sandbox::LuaSandbox::new("../test/read_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
-        assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let rc = sb.timer_event(0);
         assert!(rc == 0, "{}", sb.last_error());
@@ -954,7 +1032,6 @@ mod test {
         let mut m = Some(pb::HekaMessage::new());
         for e in err.iter() {
             let mut sb = sandbox::LuaSandbox::new("../test/read_message_error.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
-            assert!(sb.last_error().is_empty());
             assert!(0 == sb.init("".as_bytes()));
             m.get_mut_ref().set_pid(idx);
             let (rc, mm) = sb.process_message(m.take_unwrap());
@@ -969,8 +1046,6 @@ mod test {
     #[test]
     fn read_config() {
         let mut sb = sandbox::LuaSandbox::new("../test/read_config.lua".as_bytes(), "".as_bytes(), 64*1024, 1000, 1024);
-        assert!(sb.last_error().is_empty());
-
         sb.config.config.insert("string".to_string(), box "widget".to_string() as Box<Any>);
         sb.config.config.insert("int64".to_string(), box () (99 as i64) as Box<Any>);
         sb.config.config.insert("double".to_string(), box () (99.123 as f64) as Box<Any>);
@@ -982,54 +1057,8 @@ mod test {
     #[test]
     fn read_next_field() {
         let mut sb = sandbox::LuaSandbox::new("../test/read_next_field.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
-        assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(pb::HekaMessage::new());
-
-        let mut f = pb::Field::new();
-        f.set_name("foo".into_string());
-        f.set_representation("test".into_string());
-        f.set_value_type(pb::Field_STRING);
-        f.add_value_string("bar".into_string());
-        m.get_mut_ref().add_fields(f);
-
-
-        let mut f1 = pb::Field::new();
-        f1.set_name("bytes".into_string());
-        f1.set_value_type(pb::Field_BYTES);
-        f1.add_value_bytes(b"data".to_vec());
-        m.get_mut_ref().add_fields(f1);
-
-        let mut f2 = pb::Field::new();
-        f2.set_name("int".into_string());
-        f2.set_value_type(pb::Field_INTEGER);
-        f2.add_value_integer(999);
-        f2.add_value_integer(1000);
-        m.get_mut_ref().add_fields(f2);
-
-        let mut f3 = pb::Field::new();
-        f3.set_name("double".into_string());
-        f3.set_value_type(pb::Field_DOUBLE);
-        f3.add_value_double(99.9);
-        m.get_mut_ref().add_fields(f3);
-
-        let mut f4 = pb::Field::new();
-        f4.set_name("bool".into_string());
-        f4.set_value_type(pb::Field_BOOL);
-        f4.add_value_bool(true);
-        m.get_mut_ref().add_fields(f4);
-
-        let mut f5 = pb::Field::new();
-        f5.set_name("foo".into_string());
-        f5.set_value_type(pb::Field_STRING);
-        f5.add_value_string("alternate".into_string());
-        m.get_mut_ref().add_fields(f5);
-
-        let mut f6 = pb::Field::new();
-        f6.set_name("false".into_string());
-        f6.set_value_type(pb::Field_BOOL);
-        f6.add_value_bool(false);
-        m.get_mut_ref().add_fields(f6);
+        let mut m = Some(get_test_message());
 
         for n in range(0u, 2) { // make sure the iterator is reset between messages
             let (rc, mm) = sb.process_message(m.take_unwrap());
@@ -1043,7 +1072,6 @@ mod test {
     #[test]
     fn read_next_field_error() {
         let mut sb = sandbox::LuaSandbox::new("../test/read_next_field.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
-        assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let rc = sb.timer_event(0);
         assert!(1 == rc);
@@ -1055,7 +1083,6 @@ mod test {
     fn write_message() {
         let mut m = Some(pb::HekaMessage::new());
         let mut sb = sandbox::LuaSandbox::new("../test/write_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
-        assert!(sb.last_error().is_empty());
         assert!(0 == sb.init("".as_bytes()));
         let (rc, mm) = sb.process_message(m.take_unwrap());
         m = Some(mm);
@@ -1132,7 +1159,6 @@ mod test {
         let mut m = Some(pb::HekaMessage::new());
         for e in err.iter() {
             let mut sb = sandbox::LuaSandbox::new("../test/write_message_error.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
-            assert!(sb.last_error().is_empty());
             assert!(0 == sb.init("".as_bytes()));
             m.get_mut_ref().set_pid(idx);
             let (rc, mm) = sb.process_message(m.take_unwrap());
@@ -1142,5 +1168,150 @@ mod test {
             idx += 1;
             assert!(sb.destroy("".as_bytes()).is_empty());
         }
+    }
+
+    #[bench]
+    fn create_init_destroy(b: &mut test::Bencher) {
+        b.iter(|| {
+            let mut sb = sandbox::LuaSandbox::new("../test/serialize.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 0);
+            sb.init("".as_bytes());
+            sb.destroy("".as_bytes());
+        });
+    }
+
+    #[bench]
+    fn create_init_destroy_restore(b: &mut test::Bencher) {
+        b.iter(|| {
+            let mut sb = sandbox::LuaSandbox::new("../test/serialize.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 0);
+            sb.init("../test/serialize.lua.data".as_bytes());
+            sb.destroy("".as_bytes());
+        });
+    }
+
+    #[bench]
+    fn create_init_destroy_preserve(b: &mut test::Bencher) {
+        b.iter(|| {
+            let mut sb = sandbox::LuaSandbox::new("../test/serialize.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 0);
+            sb.init("".as_bytes());
+            sb.destroy("/tmp/serialize.lua.data".as_bytes());
+        });
+    }
+
+    #[bench]
+    fn process_message_counter(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/counter.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(get_test_message());
+        b.iter(|| {
+            let (_, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn read_string(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/readstring.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(get_test_message());
+        m.get_mut_ref().set_field_type(String::from_str("TEST"));
+        b.iter(|| {
+            let (_, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn read_int(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/readint.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(get_test_message());
+        b.iter(|| {
+            let (_, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn read_field(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/readfield.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(get_test_message());
+        b.iter(|| {
+            let (_, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn output_lua_types(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/inject_message.lua".as_bytes(), "".as_bytes(), 100000, 1000, 1024);
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(pb::HekaMessage::new());
+        m.get_mut_ref().set_payload("lua types".into_string());
+        b.iter(|| {
+            let (_, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn output_table(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/inject_message.lua".as_bytes(), "".as_bytes(), 100000, 1000, 1024);
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(pb::HekaMessage::new());
+        m.get_mut_ref().set_payload("cloudwatch metric".into_string());
+        b.iter(|| {
+            let (_, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn output_cbuf(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/inject_message.lua".as_bytes(), "".as_bytes(), 100000, 1000, 63*1024);
+        assert!(0 == sb.init("".as_bytes()));
+        b.iter(|| {
+            sb.timer_event(0);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn output_message(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/inject_message.lua".as_bytes(), "".as_bytes(), 100000, 1000, 63*1024);
+        assert!(0 == sb.init("".as_bytes()));
+        b.iter(|| {
+            sb.timer_event(1);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn output_json(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/inject_message.lua".as_bytes(), "".as_bytes(), 100000, 1000, 63*1024);
+        assert!(0 == sb.init("".as_bytes()));
+        b.iter(|| {
+            sb.timer_event(2);
+        });
+        sb.destroy("".as_bytes());
+    }
+
+    #[bench]
+    fn output_lpeg_decoder(b: &mut test::Bencher) {
+        let mut sb = sandbox::LuaSandbox::new("../test/decoder.lua".as_bytes(), "".as_bytes(), 1024*1024*8, 1000000, 63*1024);
+        assert!(0 == sb.init("".as_bytes()));
+        let mut m = Some(pb::HekaMessage::new());
+        m.get_mut_ref().set_payload("1376389920 debug id=2321 url=example.com item=1".into_string());
+        b.iter(|| {
+            let (_, mm) = sb.process_message(m.take_unwrap());
+            m = Some(mm);
+        });
+        sb.destroy("".as_bytes());
     }
 }

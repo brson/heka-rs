@@ -1,0 +1,16 @@
+[package]
+build = "./build.sh"
+name = "heka"
+version = "0.0.1"
+authors = ["Mike Trinkala <trink@mozilla.com>"]
+
+[lib]
+name = "heka"
+path = "src/lib.rs"
+
+[[bin]]
+name = "heka_rs"
+path = "src/main.rs"
+
+[dependencies.protobuf]
+git = "https://github.com/jansegre/rust-protobuf"

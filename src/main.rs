@@ -1,15 +1,6 @@
-#![feature(phase)]
-#![feature(globs)]
-#![allow(dead_code)]
-#![allow(non_camel_case_types)]
-
-extern crate std;
 extern crate protobuf; // depend on rust-protobuf runtime
 extern crate getopts;
-extern crate libc;
-#[phase(plugin)]
-extern crate regex_macros;
-extern crate regex;
+extern crate heka;
 
 use std::path::Path;
 use std::io::fs::File;
@@ -19,12 +10,8 @@ use getopts::{optopt,optflag,getopts,OptGroup};
 
 use protobuf::clear::Clear;
 use protobuf::Message;
-use message::pb;
-use message::matcher;
-
-mod message; // add generated file to the project
-mod sandbox;
-mod splitter;
+use heka::message::pb;
+use heka::{message,sandbox,splitter};
 
 fn print_usage(program: &str, _opts: &[OptGroup]) {
     println!("{}", getopts::usage(format!("Usage: {} [options] <input_file>", program).as_slice(), _opts))
@@ -63,7 +50,7 @@ fn main() {
         Some(m) => m,
         None => "TRUE".into_string(),
     };
-    let mm = match matcher::Matcher::new(m.as_slice()) {
+    let mm = match message::matcher::Matcher::new(m.as_slice()) {
         Ok(m) => m,
         Err(e) => fail!("invalid match at position({}): {}", e.pos, e.msg),
     };
@@ -90,18 +77,18 @@ fn main() {
                     count += 1;
                     let mut reader = BufReader::new(m);
                     let mut cis = protobuf::CodedInputStream::new(&mut reader);
-                    msg.get_mut_ref().clear();
-                    msg.get_mut_ref().merge_from(&mut cis); // todo: warning this asserts on corrupt records
-                    if msg.get_ref().is_initialized() {
-                        if mm.is_match(msg.get_ref()) {
+                    msg.as_mut().unwrap().clear();
+                    msg.as_mut().unwrap().merge_from(&mut cis); // todo: warning this asserts on corrupt records
+                    if msg.as_ref().unwrap().is_initialized() {
+                        if mm.is_match(msg.as_ref().unwrap()) {
                             match_count += 1;
-                            let (rc, mm) = lsb.process_message(msg.take_unwrap());
+                            let (rc, mm) = lsb.process_message(msg.take().unwrap());
                             msg = Some(mm);
                             if rc > 0 {
                                 println!("process message failed {} {}", rc, lsb.last_error());
                                 return;
                             } else if rc == -1 {
-                                println!("process message failed parsing line {}: {}", count, msg.get_ref().get_payload());
+                                println!("process message failed parsing line {}: {}", count, msg.as_ref().unwrap().get_payload());
                             }
                         }
                     } else {

@@ -31,14 +31,14 @@ fn main() {
     let mut file = BufferedReader::new(File::open(&path));
     for line in file.lines() {
         count = count + 1;
-        m.get_mut_ref().set_payload(line.unwrap());
-        let (rc, mm) = sb.process_message(m.take_unwrap());
+        m.as_mut().unwrap().set_payload(line.unwrap());
+        let (rc, mm) = sb.process_message(m.take().unwrap());
         m = Some(mm);
         if rc > 0 {
             println!("process message failed {}", rc);
             break;
         } else if rc == -1 {
-            println!("process message failed parsing line {}: {}", count, m.get_ref().get_payload());
+            println!("process message failed parsing line {}: {}", count, m.as_ref().unwrap().get_payload());
         }
     }
 

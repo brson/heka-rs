@@ -11,10 +11,5 @@ heka_rs - UNIX Build Instructions
 ====
 
     cd heka_rs 
-    mkdir release
-    cd release
-    cmake -DCMAKE_BUILD_TYPE=release ..
-    make
-
-    ./heka_test
-
+    cargo build
+    cargo test

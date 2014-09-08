@@ -15,14 +15,3 @@ externalproject_add(
     CMAKE_ARGS ${SANDBOX_ARGS}
     INSTALL_DIR ${PROJECT_PATH}
     )
-
-externalproject_add(
-    rust-protobuf
-    GIT_REPOSITORY https://github.com/stepancheg/rust-protobuf.git
-    GIT_TAG fd06c5cf3db936d998d9a1b723c0eb7865fab530
-    BINARY_DIR "${CMAKE_BINARY_DIR}/ep_base/Source/rust-protobuf/src"
-    BUILD_COMMAND ./rebuild.sh
-    CONFIGURE_COMMAND ""
-    INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_PATH}/lib/"&& ${CMAKE_COMMAND} -E make_directory "${PROJECT_PATH}/bin/" && ${CMAKE_COMMAND} -E copy libprotobuf.rlib "${PROJECT_PATH}/lib/" && ${CMAKE_COMMAND} -E copy protoc-gen-rust "${PROJECT_PATH}/bin/"
-    UPDATE_COMMAND "" # comment out to enable updates
-)

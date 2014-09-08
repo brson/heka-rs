@@ -273,7 +273,7 @@ impl<'a> Header {
         if self.message_length.is_none() {
             self.message_length = Some(0);
         };
-        self.message_length.get_mut_ref()
+        self.message_length.as_mut().unwrap()
     }
 
     pub fn get_message_length(&self) -> u32 {
@@ -299,7 +299,7 @@ impl<'a> Header {
         if self.hmac_hash_function.is_none() {
             self.hmac_hash_function = Some(Header_HmacHashFunction::new(0));
         };
-        self.hmac_hash_function.get_mut_ref()
+        self.hmac_hash_function.as_mut().unwrap()
     }
 
     pub fn get_hmac_hash_function(&self) -> Header_HmacHashFunction {
@@ -325,7 +325,7 @@ impl<'a> Header {
         if self.hmac_signer.is_none() {
             self.hmac_signer.set_default();
         };
-        self.hmac_signer.get_mut_ref()
+        self.hmac_signer.as_mut().unwrap()
     }
 
     pub fn get_hmac_signer(&'a self) -> &'a str {
@@ -354,7 +354,7 @@ impl<'a> Header {
         if self.hmac_key_version.is_none() {
             self.hmac_key_version = Some(0);
         };
-        self.hmac_key_version.get_mut_ref()
+        self.hmac_key_version.as_mut().unwrap()
     }
 
     pub fn get_hmac_key_version(&self) -> u32 {
@@ -380,13 +380,13 @@ impl<'a> Header {
         if self.hmac.is_none() {
             self.hmac.set_default();
         };
-        self.hmac.get_mut_ref()
+        self.hmac.as_mut().unwrap()
     }
 
     pub fn get_hmac(&'a self) -> &'a [u8] {
         match self.hmac.as_ref() {
             Some(ref v) => v.as_slice(),
-            None => &[],
+            None => {let x: &[u8] =  &[]; x},
         }
     }
 }
@@ -733,7 +733,7 @@ impl<'a> Field {
         if self.name.is_none() {
             self.name.set_default();
         };
-        self.name.get_mut_ref()
+        self.name.as_mut().unwrap()
     }
 
     pub fn get_name(&'a self) -> &'a str {
@@ -762,7 +762,7 @@ impl<'a> Field {
         if self.value_type.is_none() {
             self.value_type = Some(Field_ValueType::new(0));
         };
-        self.value_type.get_mut_ref()
+        self.value_type.as_mut().unwrap()
     }
 
     pub fn get_value_type(&self) -> Field_ValueType {
@@ -788,7 +788,7 @@ impl<'a> Field {
         if self.representation.is_none() {
             self.representation.set_default();
         };
-        self.representation.get_mut_ref()
+        self.representation.as_mut().unwrap()
     }
 
     pub fn get_representation(&'a self) -> &'a str {
@@ -1384,13 +1384,13 @@ impl<'a> HekaMessage {
         if self.uuid.is_none() {
             self.uuid.set_default();
         };
-        self.uuid.get_mut_ref()
+        self.uuid.as_mut().unwrap()
     }
 
     pub fn get_uuid(&'a self) -> &'a [u8] {
         match self.uuid.as_ref() {
             Some(ref v) => v.as_slice(),
-            None => &[],
+            None => {let x: &[u8] =  &[]; x},
         }
     }
 
@@ -1413,7 +1413,7 @@ impl<'a> HekaMessage {
         if self.timestamp.is_none() {
             self.timestamp = Some(0);
         };
-        self.timestamp.get_mut_ref()
+        self.timestamp.as_mut().unwrap()
     }
 
     pub fn get_timestamp(&self) -> i64 {
@@ -1439,7 +1439,7 @@ impl<'a> HekaMessage {
         if self.field_type.is_none() {
             self.field_type.set_default();
         };
-        self.field_type.get_mut_ref()
+        self.field_type.as_mut().unwrap()
     }
 
     pub fn get_field_type(&'a self) -> &'a str {
@@ -1468,7 +1468,7 @@ impl<'a> HekaMessage {
         if self.logger.is_none() {
             self.logger.set_default();
         };
-        self.logger.get_mut_ref()
+        self.logger.as_mut().unwrap()
     }
 
     pub fn get_logger(&'a self) -> &'a str {
@@ -1497,7 +1497,7 @@ impl<'a> HekaMessage {
         if self.severity.is_none() {
             self.severity = Some(0);
         };
-        self.severity.get_mut_ref()
+        self.severity.as_mut().unwrap()
     }
 
     pub fn get_severity(&self) -> i32 {
@@ -1523,7 +1523,7 @@ impl<'a> HekaMessage {
         if self.payload.is_none() {
             self.payload.set_default();
         };
-        self.payload.get_mut_ref()
+        self.payload.as_mut().unwrap()
     }
 
     pub fn get_payload(&'a self) -> &'a str {
@@ -1552,7 +1552,7 @@ impl<'a> HekaMessage {
         if self.env_version.is_none() {
             self.env_version.set_default();
         };
-        self.env_version.get_mut_ref()
+        self.env_version.as_mut().unwrap()
     }
 
     pub fn get_env_version(&'a self) -> &'a str {
@@ -1581,7 +1581,7 @@ impl<'a> HekaMessage {
         if self.pid.is_none() {
             self.pid = Some(0);
         };
-        self.pid.get_mut_ref()
+        self.pid.as_mut().unwrap()
     }
 
     pub fn get_pid(&self) -> i32 {
@@ -1607,7 +1607,7 @@ impl<'a> HekaMessage {
         if self.hostname.is_none() {
             self.hostname.set_default();
         };
-        self.hostname.get_mut_ref()
+        self.hostname.as_mut().unwrap()
     }
 
     pub fn get_hostname(&'a self) -> &'a str {

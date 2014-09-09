@@ -11,7 +11,7 @@ local tests = {
 {"Payload"          , "payload"                                 },
 {"EnvVersion"       , "envversion"                              },
 {"Hostname"         , "hostname"                                },
---{"Uuid"             , "f47ac10b-58cc-4372-a567-0e02b2c3d479"    },
+{"Uuid"             , "f47ac10b-58cc-4372-a567-0e02b2c3d479"    },
 {"Timestamp"        , 999                                       },
 {"Severity"         , 4                                         },
 {"Pid"              , 23                                        },

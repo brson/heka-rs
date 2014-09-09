@@ -1,13 +1,14 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 #![feature(phase)]
-#[phase(plugin)]
 
-extern crate regex_macros;
-extern crate regex;
 extern crate libc;
-extern crate protobuf; // depend on rust-protobuf runtime
+extern crate protobuf;
+extern crate regex;
+#[phase(plugin)]
+extern crate regex_macros;
+extern crate uuid;
 
-pub mod message; // add generated file to the project
+pub mod message;
 pub mod sandbox;
 pub mod splitter;

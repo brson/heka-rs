@@ -41,8 +41,11 @@ function process_message()
     elseif p == 17 then
         write_message("Fields[Bool]", true)
         write_message("Fields[Bool]", "1", nil, 0, 1) -- type mis-match
+    elseif p == 18 then
+        write_message("Uuid", true)
+    elseif p == 19 then
+        write_message("Uuid", "foobar")
     end
-    -- todo test uuid
     -- todo test string Timestamps
     return 0
 end

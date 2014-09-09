@@ -3,6 +3,7 @@ use std;
 use std::collections::{DList, Deque};
 use message;
 use message::pb;
+use uuid::Uuid;
 
 enum Value {
     Text(String),
@@ -514,7 +515,14 @@ fn evaluate_node(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
                     "Timestamp" => test_number(m.get_timestamp() as f64, n),
                     "Payload" => test_string(m.get_payload(), n),
                     "Pid" => test_number(m.get_pid() as f64, n),
-                    "Uuid" => false,// return test_string(m.get_uuid(), n); // todo convert this to a string for comparison
+                    "Uuid" => {
+                        match Uuid::from_bytes(m.get_uuid()) {
+                            Some(u) => {
+                                test_string(u.to_hyphenated_string().as_slice(), n)
+                            },
+                            None => test_string("", n),
+                        }
+                    },
                     _ => false,
                 }
             } else {
@@ -640,6 +648,7 @@ mod test {
     extern crate test;
     use message::matcher;
     use message::pb;
+    use uuid::Uuid;
 
     fn add_field_integer(m: &mut pb::HekaMessage, name: &str, val: i64) {
         let mut f = pb::Field::new();
@@ -686,7 +695,11 @@ mod test {
 
     fn get_test_message() -> pb::HekaMessage {
         let mut msg = pb::HekaMessage::new();
-        // todo set uuid
+        let u = match Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479") {
+            Ok(u) => u,
+            Err(_) => fail!("bad uuid"),
+        };
+        msg.set_uuid(u.as_bytes().to_vec());
         msg.set_timestamp(9000000000);
         msg.set_field_type("TEST".into_string());
         msg.set_severity(6);
@@ -810,7 +823,7 @@ mod test {
         assert!(test_match(&msg, "Type == 'test' && Severity == 7 || Payload == 'Test Payload'"));
         assert!(test_match(&msg, "Type == 'TEST'"));
         assert!(test_match(&msg, "Type == 'foo' || Type == 'bar' || Type == 'TEST'"));
-//      assert!(test_match(&msg, "Uuid == 'todo'"));
+        assert!(test_match(&msg, "Uuid == 'f47ac10b-58cc-4372-a567-0e02b2c3d479'"));
         assert!(test_match(&msg, "Fields[foo] == 'bar'"));
         assert!(test_match(&msg, "Fields[foo][0] == 'bar'"));
         assert!(test_match(&msg, "Fields[foo][0][0] == 'bar'"));

@@ -1,10 +1,12 @@
+use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
+use protobuf;
 use std;
 use std::any::{Any, AnyRefExt};
 use std::collections::HashMap;
 use std::c_str::CString;
-use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
-use protobuf;
 use super::message::pb;
+use uuid::Uuid;
+
 
 //trait Sandbox {
 //  fn new(source_file: &[u8], include_path: &[u8], memory_limit: c_uint, instruction_limit: c_uint, output_limit: c_uint) -> Self;
@@ -50,8 +52,8 @@ struct SandboxConfig {
     config: HashMap<String, Box<Any + 'static>>
 }
 
-//pub type InjectMessageFunction<'a> = |msg: &'a pb::HekaMessage|: 'a -> c_int;
-//pub type InjectPayloadFunction<'a> = |name: &'a String, typ: &'a String, payload: &'a String|: 'a -> c_int;
+pub type InjectMessageFunction<'a> = |msg: pb::HekaMessage|: 'a -> c_int;
+pub type InjectPayloadFunction<'a> = |name: &'a String, typ: &'a String, payload: &'a String|: 'a -> c_int;
 pub enum LSB {}
 pub enum LUA {}
 pub struct LuaSandbox<'a> {
@@ -59,8 +61,8 @@ pub struct LuaSandbox<'a> {
     lsb: *mut LSB,
     config: SandboxConfig,
     field_iterator: uint,
-//    inject_message: Option<InjectMessageFunction>,
-//    inject_payload: Option<InjectPayloadFunction>,
+    inject_message: Option<InjectMessageFunction<'a>>,
+    inject_payload: Option<InjectPayloadFunction<'a>>,
 }
 
 impl<'a> LuaSandbox<'a> {
@@ -79,8 +81,8 @@ impl<'a> LuaSandbox<'a> {
                 lsb: std::ptr::mut_null(),
                 config: cfg,
                 field_iterator: 0,
-                // inject_message: None,
-                // inject_payload: None,
+                inject_message: None,
+                inject_payload: None,
             };
             // Convert our owned box into an unsafe pointer, making
             // sure that we're passing a pointer into the heap to
@@ -327,12 +329,6 @@ extern fn inject_message(lua: *mut LUA) -> c_int {
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
-//        let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
-//        assert!(!sandbox.is_null());
-//        if (*sandbox).inject_message.is_none() {
-//            return 0;
-//        }
-
         if lsb_output_protobuf(lsb, 1, 0) != 0 {
             let err = format!("inject_message() could not encode protobuf: {}", lsb_get_error(lsb));
             lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
@@ -342,12 +338,17 @@ extern fn inject_message(lua: *mut LUA) -> c_int {
         let mut len: size_t = 0;
         let c = lsb_get_output(lsb, &mut len);
         if len != 0 {
-//            let r = todo_inject_function_ptr(std::slice::raw::buf_as_slice(c as *const u8, len as uint, protobuf::parse_from_bytes::<pb::HekaMessage>));
-//            if 0 != r {
-//                let err = format!("inject_message() failed: {}", r);
-//                lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
-//                return lua_error(lua);
-//            }
+            let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+            assert!(!sandbox.is_null());
+            let r = match (*sandbox).inject_message {
+                Some(ref f) => 0, //f(std::slice::raw::buf_as_slice(c as *const u8, len as uint, protobuf::parse_from_bytes::<pb::HekaMessage>)),
+                None => 0 as c_int,
+            };
+            if 0 != r {
+                let err = format!("inject_message() failed: {}", r);
+                lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
+                return lua_error(lua);
+            }
         }
         return 0;
     }
@@ -359,12 +360,6 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
         argcheck(lua, luserdata != std::ptr::null(), 0, "invalid lightuserdata");
 
         let lsb = luserdata as *mut LSB;
-//        let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
-//        assert!(!sandbox.is_null());
-//        if (*sandbox).inject_payload.is_none() {
-//            return 0;
-//        }
-
         let mut len: size_t = 0;
         let mut typ = String::from_str("txt");
         let mut name = String::new();
@@ -384,12 +379,17 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
         }
         let c = lsb_get_output(lsb, &mut len);
         if len != 0 {
-//            let r = todo_payload_function_ptr(name, typ, std::string::raw::from_buf_len(c as *const u8, len as uint));
-//            if 0 != r {
-//                let err = format!("inject_payload() failed: {}", r);
-//                lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
-//                return lua_error(lua);
-//            }
+            let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
+            assert!(!sandbox.is_null());
+            let r = match (*sandbox).inject_payload {
+                Some(ref f) => 0, // todo f(name, typ, std::string::raw::from_buf_len(c as *const u8, len as uint)),
+                None => 0 as c_int,
+            };
+            if 0 != r {
+                let err = format!("inject_payload() failed: {}", r);
+                lua_pushlstring(lua, err.as_slice().as_ptr() as *const i8, err.len() as size_t);
+                return lua_error(lua);
+            }
         }
         return 0;
     }
@@ -543,11 +543,15 @@ extern fn read_message(lua: *mut LUA) -> c_int {
                 let s = msg.get_hostname();
                 lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
             }
-//            "Uuid" => {
-//                let u = Uuid::from_bytes(msg.get_uuid());
-//                let s = u.as_ref().unwrap().to_simple_str();
-//                lua_pushlstring(lua, s.as_slice().as_ptr() as *const i8, s.len() as size_t);
-//            }
+            "Uuid" => {
+                match Uuid::from_bytes(msg.get_uuid()) {
+                    Some(u) => {
+                        let s = u.to_hyphenated_string();
+                        lua_pushlstring(lua, s.as_slice().as_ptr() as *const i8, s.len() as size_t);
+                    }
+                    None => { lua_pushlstring(lua, "".as_ptr() as *const i8, 1) }
+                }
+            }
             "Timestamp" => {
                 lua_pushnumber(lua, msg.get_timestamp() as f64);
             }
@@ -791,9 +795,18 @@ extern fn write_message(lua: *mut LUA) -> c_int {
                 let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
                 msg.set_hostname(std::string::raw::from_buf(v as *const u8));
             }
-//            "Uuid" => {
-//                argcheck(lua, t == 4, 2, "'Uuid' must be a string");
-//            }
+            "Uuid" => {
+                argcheck(lua, t == 4, 2, "'Uuid' must be a string");
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
+                let u = match Uuid::parse_str(std::string::raw::from_buf(v as *const u8).as_slice()) {
+                    Ok(u) => u,
+                    Err(_) => {
+                        argcheck(lua, false, 2, "'Uuid' invalid string");
+                        return 0; // will never get here but make the compiler happy
+                    }
+                };
+                msg.set_uuid(u.as_bytes().to_vec());
+            }
             "Timestamp" => { // todo add date/time string conversion
                 argcheck(lua, t == 3, 2, "'Timestamp' must be a number");
                 msg.set_timestamp(lua_tonumber(lua, 2) as i64);
@@ -867,10 +880,15 @@ mod test {
     use std::any::Any;
     use sandbox;
     use message::pb;
+    use uuid::Uuid;
 
     fn get_test_message() -> pb::HekaMessage {
         let mut msg = pb::HekaMessage::new();
-        // todo set uuid
+        let u = match Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479") {
+            Ok(u) => u,
+            Err(_) => fail!("bad uuid"),
+        };
+        msg.set_uuid(u.as_bytes().to_vec());
         msg.set_timestamp(5123456789);
         msg.set_field_type("TEST".into_string());
         msg.set_logger("GoSpec".into_string());
@@ -985,8 +1003,11 @@ mod test {
         m.as_mut().unwrap().set_payload(String::from_str("payload"));
         m.as_mut().unwrap().set_env_version(String::from_str("envversion"));
         m.as_mut().unwrap().set_hostname(String::from_str("hostname"));
-//        let (u, _) = Uuid::parse_string("f47ac10b-58cc-4372-a567-0e02b2c3d479");
-//        m.as_mut().unwrap().set_uuid(u.as_bytes());
+        let u = match Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479") {
+            Ok(u) => u,
+            Err(_) => fail!("bad uuid"),
+        };
+        m.as_mut().unwrap().set_uuid(u.as_bytes().to_vec());
         m.as_mut().unwrap().set_timestamp(999);
         m.as_mut().unwrap().set_severity(4);
         m.as_mut().unwrap().set_pid(23);
@@ -1153,7 +1174,9 @@ mod test {
             "process_message() test/write_message_error.lua:36: bad argument #2 to 'write_message' ('Timestamp' must be a number)",
             "process_message() test/write_message_error.lua:38: bad argument #2 to 'write_message' ('Severity' must be a number or string)",
             "process_message() test/write_message_error.lua:40: bad argument #2 to 'write_message' ('Pid' must be a number or string)",
-            "process_message() test/write_message_error.lua:43: bad argument #1 to 'write_message' (field type mis-match)"
+            "process_message() test/write_message_error.lua:43: bad argument #1 to 'write_message' (field type mis-match)",
+            "process_message() test/write_message_error.lua:45: bad argument #2 to 'write_message' ('Uuid' must be a string)",
+            "process_message() test/write_message_error.lua:47: bad argument #2 to 'write_message' ('Uuid' invalid string)",
         ];
         let mut idx = 0;
         let mut m = Some(pb::HekaMessage::new());
@@ -1163,7 +1186,7 @@ mod test {
             m.as_mut().unwrap().set_pid(idx);
             let (rc, mm) = sb.process_message(m.take().unwrap());
             m = Some(mm);
-            assert!(rc == 1);
+            assert!(rc == 1, "test: {} expected: {}", idx, *e);
             assert!(sb.last_error().as_slice() == *e, "test: {} expected: {} received: {}", idx, *e, sb.last_error());
             idx += 1;
             assert!(sb.destroy("".as_bytes()).is_empty());

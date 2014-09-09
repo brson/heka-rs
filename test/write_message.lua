@@ -20,6 +20,6 @@ function process_message ()
         write_message("Fields[Bool]", false, "", 1, 0)
         write_message("Fields[Bool]", false, "", 1, 1)
         write_message("Fields[]", "bad idea")
--- todo        write_message("Uuid", "550d19b9-58c7-49d8-b0dd-b48cd1c5b305")
+        write_message("Uuid", "f47ac10b-58cc-4372-a567-0e02b2c3d479")
         return 0
 end

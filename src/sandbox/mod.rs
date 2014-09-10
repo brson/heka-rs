@@ -57,7 +57,7 @@ pub type InjectPayloadFunction<'a> = |name: &'a String, typ: &'a String, payload
 pub enum LSB {}
 pub enum LUA {}
 pub struct LuaSandbox<'a> {
-    msg: std::option::Option<pb::HekaMessage>,
+    msg: std::option::Option<Box<pb::HekaMessage>>,
     lsb: *mut LSB,
     config: SandboxConfig,
     field_iterator: uint,
@@ -191,7 +191,7 @@ impl<'a> LuaSandbox<'a> {
         }
     }
 
-    pub fn process_message(&mut self, msg: pb::HekaMessage) -> (c_int, pb::HekaMessage) {
+    pub fn process_message(&mut self, msg: Box<pb::HekaMessage>) -> (c_int, Box<pb::HekaMessage>) {
         let func_name = "process_message";
         unsafe {
             if self.lsb == std::ptr::mut_null() {
@@ -517,8 +517,8 @@ extern fn read_message(lua: *mut LUA) -> c_int {
             lua_pushnil(lua);
             return 1;
         }
-        let msg = (*sandbox).msg.as_ref().unwrap();
-
+        let msg: &Box<pb::HekaMessage> = (*sandbox).msg.as_ref().unwrap();
+        let msg: &pb::HekaMessage = &**msg;
 
         let field = std::string::raw::from_buf(f as *const u8);
 
@@ -766,7 +766,8 @@ extern fn write_message(lua: *mut LUA) -> c_int {
         if (*sandbox).msg.is_none() {
             argcheck(lua, false, 0,  "no message available");
         }
-        let msg = (*sandbox).msg.as_mut().unwrap();
+        let msg: &mut Box<pb::HekaMessage> = (*sandbox).msg.as_mut().unwrap();
+        let msg: &mut pb::HekaMessage = &mut **msg;
         let field = std::string::raw::from_buf(name as *const u8);
 
         match field.as_slice() {
@@ -974,7 +975,7 @@ mod test {
     fn process_message_missing() {
         let mut sb = sandbox::LuaSandbox::new("test/hello_world.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         let (rc, _) = sb.process_message(m.take().unwrap());
         assert!(rc != 0);
         assert!(sb.state() as int == sandbox::STATE_TERMINATED as int);
@@ -997,7 +998,7 @@ mod test {
     fn read_message() {
         let mut sb = sandbox::LuaSandbox::new("test/read_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         m.as_mut().unwrap().set_field_type(String::from_str("type"));
         m.as_mut().unwrap().set_logger(String::from_str("logger"));
         m.as_mut().unwrap().set_payload(String::from_str("payload"));
@@ -1050,7 +1051,7 @@ mod test {
          "process_message() test/read_message_error.lua:14: bad argument #2 to 'read_message' (field index must be >= 0)",
          "process_message() test/read_message_error.lua:16: bad argument #3 to 'read_message' (array index must be >= 0)"];
         let mut idx = 0;
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         for e in err.iter() {
             let mut sb = sandbox::LuaSandbox::new("test/read_message_error.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
             assert!(0 == sb.init("".as_bytes()));
@@ -1079,7 +1080,7 @@ mod test {
     fn read_next_field() {
         let mut sb = sandbox::LuaSandbox::new("test/read_next_field.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(get_test_message());
+        let mut m = Some(box get_test_message());
 
         for n in range(0u, 2) { // make sure the iterator is reset between messages
             let (rc, mm) = sb.process_message(m.take().unwrap());
@@ -1102,7 +1103,7 @@ mod test {
 
     #[test]
     fn write_message() {
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         let mut sb = sandbox::LuaSandbox::new("test/write_message.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
         assert!(0 == sb.init("".as_bytes()));
         let (rc, mm) = sb.process_message(m.take().unwrap());
@@ -1179,7 +1180,7 @@ mod test {
             "process_message() test/write_message_error.lua:47: bad argument #2 to 'write_message' ('Uuid' invalid string)",
         ];
         let mut idx = 0;
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         for e in err.iter() {
             let mut sb = sandbox::LuaSandbox::new("test/write_message_error.lua".as_bytes(), "".as_bytes(), 64*1024, 0, 0);
             assert!(0 == sb.init("".as_bytes()));
@@ -1224,7 +1225,7 @@ mod test {
     fn process_message_counter(b: &mut test::Bencher) {
         let mut sb = sandbox::LuaSandbox::new("test/counter.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(get_test_message());
+        let mut m = Some(box get_test_message());
         b.iter(|| {
             let (_, mm) = sb.process_message(m.take().unwrap());
             m = Some(mm);
@@ -1236,7 +1237,7 @@ mod test {
     fn read_string(b: &mut test::Bencher) {
         let mut sb = sandbox::LuaSandbox::new("test/readstring.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(get_test_message());
+        let mut m = Some(box get_test_message());
         m.as_mut().unwrap().set_field_type(String::from_str("TEST"));
         b.iter(|| {
             let (_, mm) = sb.process_message(m.take().unwrap());
@@ -1249,7 +1250,7 @@ mod test {
     fn read_int(b: &mut test::Bencher) {
         let mut sb = sandbox::LuaSandbox::new("test/readint.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(get_test_message());
+        let mut m = Some(box get_test_message());
         b.iter(|| {
             let (_, mm) = sb.process_message(m.take().unwrap());
             m = Some(mm);
@@ -1261,7 +1262,7 @@ mod test {
     fn read_field(b: &mut test::Bencher) {
         let mut sb = sandbox::LuaSandbox::new("test/readfield.lua".as_bytes(), "".as_bytes(), 32*1024, 1000, 1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(get_test_message());
+        let mut m = Some(box get_test_message());
         b.iter(|| {
             let (_, mm) = sb.process_message(m.take().unwrap());
             m = Some(mm);
@@ -1273,7 +1274,7 @@ mod test {
     fn output_lua_types(b: &mut test::Bencher) {
         let mut sb = sandbox::LuaSandbox::new("test/inject_message.lua".as_bytes(), "".as_bytes(), 100000, 1000, 1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         m.as_mut().unwrap().set_payload("lua types".into_string());
         b.iter(|| {
             let (_, mm) = sb.process_message(m.take().unwrap());
@@ -1286,7 +1287,7 @@ mod test {
     fn output_table(b: &mut test::Bencher) {
         let mut sb = sandbox::LuaSandbox::new("test/inject_message.lua".as_bytes(), "".as_bytes(), 100000, 1000, 1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         m.as_mut().unwrap().set_payload("cloudwatch metric".into_string());
         b.iter(|| {
             let (_, mm) = sb.process_message(m.take().unwrap());
@@ -1329,7 +1330,7 @@ mod test {
     fn output_lpeg_decoder(b: &mut test::Bencher) {
         let mut sb = sandbox::LuaSandbox::new("test/decoder.lua".as_bytes(), "".as_bytes(), 1024*1024*8, 1000000, 63*1024);
         assert!(0 == sb.init("".as_bytes()));
-        let mut m = Some(pb::HekaMessage::new());
+        let mut m = Some(box pb::HekaMessage::new());
         m.as_mut().unwrap().set_payload("1376389920 debug id=2321 url=example.com item=1".into_string());
         b.iter(|| {
             let (_, mm) = sb.process_message(m.take().unwrap());

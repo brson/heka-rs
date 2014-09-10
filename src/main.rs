@@ -68,7 +68,7 @@ fn main() {
 
     let mut count = 0u;
     let mut match_count = 0u;
-    let mut msg = Some(pb::HekaMessage::new());
+    let mut msg = Some(box pb::HekaMessage::new());
     loop {
         match hps.read_next() {
             Ok(m) => {
@@ -80,7 +80,7 @@ fn main() {
                     msg.as_mut().unwrap().clear();
                     msg.as_mut().unwrap().merge_from(&mut cis); // todo: warning this asserts on corrupt records
                     if msg.as_ref().unwrap().is_initialized() {
-                        if mm.is_match(msg.as_ref().unwrap()) {
+                        if mm.is_match(&**msg.as_ref().unwrap()) {
                             match_count += 1;
                             let (rc, mm) = lsb.process_message(msg.take().unwrap());
                             msg = Some(mm);

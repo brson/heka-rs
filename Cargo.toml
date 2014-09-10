@@ -7,10 +7,16 @@ authors = ["Mike Trinkala <trink@mozilla.com>"]
 [lib]
 name = "heka"
 path = "src/lib.rs"
+#crate-type = ["staticlib"]
 
 [[bin]]
 name = "heka_rs"
 path = "src/main.rs"
+test = false
+doctest = false
+bench = false
+doc = false
+plugin = false
 
 [dependencies.protobuf]
 git = "https://github.com/jansegre/rust-protobuf"

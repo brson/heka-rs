@@ -63,6 +63,13 @@ pub struct LuaSandbox<'a> {
     field_iterator: uint,
     inject_message: Option<InjectMessageFunction<'a>>,
     inject_payload: Option<InjectPayloadFunction<'a>>,
+    c_func_names: CFuncNames,
+}
+
+// Ahead-of-time conversion of lua function names to CStrings
+struct CFuncNames {
+    process_message: CString,
+    timer_event: CString,
 }
 
 impl<'a> LuaSandbox<'a> {
@@ -76,6 +83,11 @@ impl<'a> LuaSandbox<'a> {
                 config: HashMap::new()
             };
 
+            let c_func_names = CFuncNames {
+                process_message: "process_message".to_c_str(),
+                timer_event: "timer_event".to_c_str()
+            };
+
             let mut s = box LuaSandbox{
                 msg: None,
                 lsb: std::ptr::mut_null(),
@@ -83,6 +95,7 @@ impl<'a> LuaSandbox<'a> {
                 field_iterator: 0,
                 inject_message: None,
                 inject_payload: None,
+                c_func_names: c_func_names
             };
             // Convert our owned box into an unsafe pointer, making
             // sure that we're passing a pointer into the heap to
@@ -192,8 +205,9 @@ impl<'a> LuaSandbox<'a> {
     }
 
     pub fn process_message(&mut self, msg: Box<pb::HekaMessage>) -> (c_int, Box<pb::HekaMessage>) {
-        let func_name = "process_message";
+        let func_name = &self.c_func_names.process_message;
         unsafe {
+
             if self.lsb == std::ptr::mut_null() {
                 return (1, msg);
             }
@@ -202,8 +216,7 @@ impl<'a> LuaSandbox<'a> {
                 return (1, msg);
             }
 
-            let mut r: c_int = 0;
-            func_name.with_c_str(|f| { r = lsb_pcall_setup(self.lsb, f); });
+            let mut r: c_int = lsb_pcall_setup(self.lsb, func_name.as_ptr());
 
             if r != 0 {
                 let err = format!("{}() function was not found", func_name);
@@ -236,7 +249,7 @@ impl<'a> LuaSandbox<'a> {
     }
 
     pub fn timer_event(&mut self, ns: c_longlong) -> c_int {
-        let func_name = "timer_event";
+        let func_name = &self.c_func_names.timer_event;
         unsafe {
             if self.lsb == std::ptr::mut_null() {
                 return 1;
@@ -246,8 +259,7 @@ impl<'a> LuaSandbox<'a> {
                 return 1;
             }
 
-            let mut r: c_int = 0;
-            func_name.with_c_str(|f| { r = lsb_pcall_setup(self.lsb, f); });
+            let mut r: c_int = lsb_pcall_setup(self.lsb, func_name.as_ptr());
 
             if r != 0 {
                 let err = format!("{}() function was not found", func_name);

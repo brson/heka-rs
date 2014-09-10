@@ -532,9 +532,10 @@ extern fn read_message(lua: *mut LUA) -> c_int {
         let msg: &Box<pb::HekaMessage> = (*sandbox).msg.as_ref().unwrap();
         let msg: &pb::HekaMessage = &**msg;
 
-        let field = std::string::raw::from_buf(f as *const u8);
+        let field = CString::new(f, false);
+        let field = field.as_str().unwrap();
 
-        match field.as_slice() {
+        match field {
             "Type" => {
                 let s = msg.get_field_type();
                 lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
@@ -578,7 +579,7 @@ extern fn read_message(lua: *mut LUA) -> c_int {
                 lua_pushlstring(lua, s.as_ptr() as *const i8, s.len() as size_t);
             }
             _ => {
-                match get_field_name(field.as_slice())
+                match get_field_name(field)
                 {
                     Some(name) => {
                         match find_field(msg, name, fi as uint)

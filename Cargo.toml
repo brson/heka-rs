@@ -19,7 +19,7 @@ doc = false
 plugin = false
 
 [dependencies.protobuf]
-git = "https://github.com/jansegre/rust-protobuf"
+git = "https://github.com/stepancheg/rust-protobuf"
 
 [dependencies.uuid]
 git = "https://github.com/rust-lang/uuid"

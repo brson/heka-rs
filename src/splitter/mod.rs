@@ -6,7 +6,7 @@ use protobuf::{CodedInputStream, Message};
 use protobuf::clear::Clear;
 use super::message::pb;
 
-static record_sep: u8 = 0x1e;
+static RECORD_SEP: u8 = 0x1e;
 
 //pub trait Splitter {
 //    // Finds the next record in the stream.
@@ -108,7 +108,7 @@ impl<R: Reader> HekaProtobufStream<R> {
         } else {
             return Ok(0); // buffer already contains enough data
         }
-        match self.reader.read(self.buf.mut_slice_from(self.read_pos)) {
+        match self.reader.read(self.buf.slice_from_mut(self.read_pos)) {
             Ok(nread) => {
                 self.read_pos += nread;
                 Ok(nread)
@@ -127,7 +127,7 @@ impl<R: Reader> HekaProtobufStream<R> {
     }
 
     fn find_record<'a>(&mut self) -> IoResult<Option<&[u8]>> {
-        let pos = self.buf.slice(self.scan_pos, self.read_pos).position_elem(&record_sep);
+        let pos = self.buf.slice(self.scan_pos, self.read_pos).position_elem(&RECORD_SEP);
         if pos.is_some() {
             let pos = pos.unwrap();
             self.offset += pos as u64;

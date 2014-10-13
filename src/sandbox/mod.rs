@@ -90,7 +90,7 @@ impl<'a> LuaSandbox<'a> {
 
             let mut s = box LuaSandbox{
                 msg: None,
-                lsb: std::ptr::mut_null(),
+                lsb: std::ptr::null_mut(),
                 config: cfg,
                 field_iterator: 0,
                 inject_message: None,
@@ -116,7 +116,7 @@ impl<'a> LuaSandbox<'a> {
 
     fn drop(&mut self) {
         unsafe {
-            if self.lsb != std::ptr::mut_null() {
+            if self.lsb != std::ptr::null_mut() {
                 lsb_destroy(self.lsb, std::ptr::null());
             }
         }
@@ -124,7 +124,7 @@ impl<'a> LuaSandbox<'a> {
 
     pub fn init(&mut self, state_file: &[u8]) -> c_int {
         unsafe {
-            if self.lsb == std::ptr::mut_null() {
+            if self.lsb == std::ptr::null_mut() {
                 return -1;
             }
             "inject_message".with_c_str(|f| {lsb_add_function(self.lsb, inject_message, f);});
@@ -156,15 +156,15 @@ impl<'a> LuaSandbox<'a> {
 
     pub fn destroy(&mut self, state_file: &[u8]) -> String {
         unsafe {
-            if self.lsb == std::ptr::mut_null() {
+            if self.lsb == std::ptr::null_mut() {
                 return String::new();
             }
-            let mut c: *mut c_char = std::ptr::mut_null();
+            let mut c: *mut c_char = std::ptr::null_mut();
             state_file.with_c_str(|sf| {
                 c = lsb_destroy(self.lsb, sf);
             });
-            self.lsb = std::ptr::mut_null();
-            if c != std::ptr::mut_null() {
+            self.lsb = std::ptr::null_mut();
+            if c != std::ptr::null_mut() {
                 return std::string::raw::from_buf(c as *const u8);
             } else {
                 return String::new();
@@ -174,7 +174,7 @@ impl<'a> LuaSandbox<'a> {
 
     pub fn last_error(&mut self) -> String {
         unsafe {
-            if self.lsb == std::ptr::mut_null() {
+            if self.lsb == std::ptr::null_mut() {
                 return String::from_str("no sandbox");
             }
             let c = lsb_get_error(self.lsb);
@@ -188,7 +188,7 @@ impl<'a> LuaSandbox<'a> {
 
     pub fn usage(&mut self, utype: lsb_usage_type, ustat: lsb_usage_stat) -> c_uint {
         unsafe {
-            if self.lsb == std::ptr::mut_null() {
+            if self.lsb == std::ptr::null_mut() {
                 return 0;
             }
             return lsb_usage(self.lsb, utype, ustat);
@@ -197,7 +197,7 @@ impl<'a> LuaSandbox<'a> {
 
     pub fn state(&mut self) -> lsb_state {
         unsafe {
-            if self.lsb == std::ptr::mut_null() {
+            if self.lsb == std::ptr::null_mut() {
                 return STATE_UNKNOWN;
             }
             return lsb_get_state(self.lsb);
@@ -208,11 +208,11 @@ impl<'a> LuaSandbox<'a> {
         let func_name = &self.c_func_names.process_message;
         unsafe {
 
-            if self.lsb == std::ptr::mut_null() {
+            if self.lsb == std::ptr::null_mut() {
                 return (1, msg);
             }
             let lua = lsb_get_lua(self.lsb);
-            if lua == std::ptr::mut_null() {
+            if lua == std::ptr::null_mut() {
                 return (1, msg);
             }
 
@@ -228,7 +228,7 @@ impl<'a> LuaSandbox<'a> {
             self.msg = Some(msg);
             self.field_iterator = 0;
             if lua_pcall(lua, 0, 1, 0) != 0 {
-                let c = lua_tolstring(lua, -1, std::ptr::mut_null());
+                let c = lua_tolstring(lua, -1, std::ptr::null_mut());
                 let err = format!("{}() {}", func_name, std::string::raw::from_buf(c as *const u8));
                 err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
                 return (1, self.msg.take().unwrap());
@@ -251,11 +251,11 @@ impl<'a> LuaSandbox<'a> {
     pub fn timer_event(&mut self, ns: c_longlong) -> c_int {
         let func_name = &self.c_func_names.timer_event;
         unsafe {
-            if self.lsb == std::ptr::mut_null() {
+            if self.lsb == std::ptr::null_mut() {
                 return 1;
             }
             let lua = lsb_get_lua(self.lsb);
-            if lua == std::ptr::mut_null() {
+            if lua == std::ptr::null_mut() {
                 return 1;
             }
 
@@ -269,7 +269,7 @@ impl<'a> LuaSandbox<'a> {
 
             lua_pushnumber(lua, ns as f64);
             if lua_pcall(lua, 1, 0, 0) != 0 {
-                let c = lua_tolstring(lua, -1, std::ptr::mut_null());
+                let c = lua_tolstring(lua, -1, std::ptr::null_mut());
                 let err = format!("{}() {}", func_name,  std::string::raw::from_buf(c as *const u8));
                 err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
                 return 1;
@@ -383,7 +383,7 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
             }
         }
         if top > 1 {
-            let c = luaL_checklstring(lua, 2, std::ptr::mut_null());
+            let c = luaL_checklstring(lua, 2, std::ptr::null_mut());
             name = std::string::raw::from_buf(c as *const u8);
         }
         if top > 2 {
@@ -411,7 +411,7 @@ fn argcheck(lua: *mut LUA, cond: bool, narg: c_int, msg: &str) {
     if !cond {
         unsafe {
             lua_pushlstring(lua, msg.as_ptr() as *const i8, msg.len() as size_t); // create a properly terminated NULL string
-            luaL_argerror(lua, narg, lua_tolstring(lua, -1, std::ptr::mut_null())); // long jumps
+            luaL_argerror(lua, narg, lua_tolstring(lua, -1, std::ptr::null_mut())); // long jumps
         }
     }
 }
@@ -432,7 +432,7 @@ fn find_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint) -> Option<&'a 
 
 fn find_field_mut<'a>(msg: &'a mut pb::HekaMessage, name: &str, fi: uint) -> (Option<&'a mut pb::Field>, uint) {
     let mut cnt = 0u;
-    for value in msg.mut_fields().mut_iter() {
+    for value in msg.mut_fields().iter_mut() {
         if name == value.get_name() {
             if cnt == fi {
                 return (Some(value), cnt);
@@ -514,7 +514,7 @@ extern fn read_message(lua: *mut LUA) -> c_int {
     unsafe {
         let n = lua_gettop(lua);
         argcheck(lua, n > 0 && n < 4, 0, "incorrect number of arguments");
-        let f: *const c_char = luaL_checklstring(lua, 1, std::ptr::mut_null());
+        let f: *const c_char = luaL_checklstring(lua, 1, std::ptr::null_mut());
         let fi = luaL_optinteger(lua, 2, 0);
         argcheck(lua, fi >= 0, 2,  "field index must be >= 0");
         let ai = luaL_optinteger(lua, 3, 0);
@@ -640,7 +640,7 @@ extern fn read_config(lua: *mut LUA) -> c_int {
         let sandbox: &mut LuaSandbox = &mut (*sandbox); // Get a Rust pointer
 
         // Get the config key as a Rust string
-        let name: *const c_char = luaL_checklstring(lua, 1, std::ptr::mut_null());
+        let name: *const c_char = luaL_checklstring(lua, 1, std::ptr::null_mut());
         let name = CString::new(name, false);
         let name = name.as_str().unwrap(); // Unlikely to fail
 
@@ -760,10 +760,10 @@ extern fn write_message(lua: *mut LUA) -> c_int {
     unsafe {
         let n = lua_gettop(lua);
         argcheck(lua, n > 1 && n < 6, 0, "incorrect number of arguments");
-        let name: *const c_char = luaL_checklstring(lua, 1, std::ptr::mut_null());
+        let name: *const c_char = luaL_checklstring(lua, 1, std::ptr::null_mut());
         let t = lua_type(lua, 2);
         argcheck(lua, t == 4 || t == 3 || t == 1, 2, "only accepts string, numeric, or boolean values");
-        let r: *const c_char = luaL_optlstring(lua, 3, "".as_ptr() as *const i8, std::ptr::mut_null());
+        let r: *const c_char = luaL_optlstring(lua, 3, "".as_ptr() as *const i8, std::ptr::null_mut());
         let fi = luaL_optinteger(lua, 4, 0);
         argcheck(lua, fi >= 0, 4,  "field index must be >= 0");
         let fi = fi as uint;
@@ -786,32 +786,32 @@ extern fn write_message(lua: *mut LUA) -> c_int {
         match field.as_slice() {
             "Type" => {
                 argcheck(lua, t == 4, 2, "'Type' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
                 msg.set_field_type(std::string::raw::from_buf(v as *const u8));
             }
             "Logger" => {
                 argcheck(lua, t == 4, 2, "'Logger' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
                 msg.set_logger(std::string::raw::from_buf(v as *const u8));
             }
             "Payload" => {
                 argcheck(lua, t == 4, 2, "'Payload' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
                 msg.set_payload(std::string::raw::from_buf(v as *const u8));
             }
             "EnvVersion" => {
                 argcheck(lua, t == 4, 2, "'EnvVersion' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
                 msg.set_env_version(std::string::raw::from_buf(v as *const u8));
             }
             "Hostname" => {
                 argcheck(lua, t == 4, 2, "'Hostname' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
                 msg.set_hostname(std::string::raw::from_buf(v as *const u8));
             }
             "Uuid" => {
                 argcheck(lua, t == 4, 2, "'Uuid' must be a string");
-                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::mut_null());
+                let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
                 let u = match Uuid::parse_str(std::string::raw::from_buf(v as *const u8).as_slice()) {
                     Ok(u) => u,
                     Err(_) => {

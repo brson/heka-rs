@@ -1,6 +1,8 @@
 // This file is generated. Do not edit
 
 #![allow(dead_code)]
+#![allow(non_camel_case_types)]
+#![allow(non_uppercase_statics)]
 
 
 static file_descriptor_proto_data: &'static [u8] = &[
@@ -212,7 +214,7 @@ static file_descriptor_proto_data: &'static [u8] = &[
 static mut file_descriptor_proto_lazy: ::protobuf::lazy::Lazy<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::lazy::Lazy { lock: ::protobuf::lazy::ONCE_INIT, ptr: 0 as *const ::protobuf::descriptor::FileDescriptorProto };
 
 fn parse_descriptor_proto() -> ::protobuf::descriptor::FileDescriptorProto {
-    ::protobuf::parse_from_bytes(file_descriptor_proto_data)
+    ::protobuf::parse_from_bytes(file_descriptor_proto_data).unwrap()
 }
 
 pub fn file_descriptor_proto() -> &'static ::protobuf::descriptor::FileDescriptorProto {
@@ -386,7 +388,7 @@ impl<'a> Header {
     pub fn get_hmac(&'a self) -> &'a [u8] {
         match self.hmac.as_ref() {
             Some(ref v) => v.as_slice(),
-            None => {let x: &[u8] =  &[]; x},
+            None => [].as_slice(),
         }
     }
 }
@@ -403,41 +405,42 @@ impl ::protobuf::Message for Header {
         true
     }
 
-    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) {
-        while !is.eof() {
-            let (field_number, wire_type) = is.read_tag_unpack();
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !try!(is.eof()) {
+            let (field_number, wire_type) = try!(is.read_tag_unpack());
             match field_number {
                 1 => {
                     assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                    let tmp = is.read_uint32();
+                    let tmp = try!(is.read_uint32());
                     self.message_length = Some(tmp);
                 },
                 3 => {
                     assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                    let tmp = Header_HmacHashFunction::new(is.read_int32());
+                    let tmp = Header_HmacHashFunction::new(try!(is.read_int32()));
                     self.hmac_hash_function = Some(tmp);
                 },
                 4 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.hmac_signer.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 5 => {
                     assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                    let tmp = is.read_uint32();
+                    let tmp = try!(is.read_uint32());
                     self.hmac_key_version = Some(tmp);
                 },
                 6 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.hmac.set_default();
-                    is.read_bytes_into(tmp)
+                    try!(is.read_bytes_into(tmp))
                 },
                 _ => {
-                    let unknown = is.read_unknown(wire_type);
+                    let unknown = try!(is.read_unknown(wire_type));
                     self.mut_unknown_fields().add_value(field_number, unknown);
                 },
             };
         }
+        ::std::result::Ok(())
     }
 
     // Compute sizes of nested messages
@@ -921,80 +924,81 @@ impl ::protobuf::Message for Field {
         true
     }
 
-    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) {
-        while !is.eof() {
-            let (field_number, wire_type) = is.read_tag_unpack();
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !try!(is.eof()) {
+            let (field_number, wire_type) = try!(is.read_tag_unpack());
             match field_number {
                 1 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.name.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 2 => {
                     assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                    let tmp = Field_ValueType::new(is.read_int32());
+                    let tmp = Field_ValueType::new(try!(is.read_int32()));
                     self.value_type = Some(tmp);
                 },
                 3 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.representation.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 4 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.value_string.push_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 5 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.value_bytes.push_default();
-                    is.read_bytes_into(tmp)
+                    try!(is.read_bytes_into(tmp))
                 },
                 6 => {
                     if wire_type == ::protobuf::wire_format::WireTypeLengthDelimited {
-                        let len = is.read_raw_varint32();
+                        let len = try!(is.read_raw_varint32());
                         let old_limit = is.push_limit(len);
-                        while !is.eof() {
-                            self.value_integer.push(is.read_int64());
+                        while !try!(is.eof()) {
+                            self.value_integer.push(try!(is.read_int64()));
                         }
                         is.pop_limit(old_limit);
                     } else {
                         assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                        self.value_integer.push(is.read_int64());
+                        self.value_integer.push(try!(is.read_int64()));
                     }
                 },
                 7 => {
                     if wire_type == ::protobuf::wire_format::WireTypeLengthDelimited {
-                        let len = is.read_raw_varint32();
+                        let len = try!(is.read_raw_varint32());
                         let old_limit = is.push_limit(len);
-                        while !is.eof() {
-                            self.value_double.push(is.read_double());
+                        while !try!(is.eof()) {
+                            self.value_double.push(try!(is.read_double()));
                         }
                         is.pop_limit(old_limit);
                     } else {
                         assert_eq!(::protobuf::wire_format::WireTypeFixed64, wire_type);
-                        self.value_double.push(is.read_double());
+                        self.value_double.push(try!(is.read_double()));
                     }
                 },
                 8 => {
                     if wire_type == ::protobuf::wire_format::WireTypeLengthDelimited {
-                        let len = is.read_raw_varint32();
+                        let len = try!(is.read_raw_varint32());
                         let old_limit = is.push_limit(len);
-                        while !is.eof() {
-                            self.value_bool.push(is.read_bool());
+                        while !try!(is.eof()) {
+                            self.value_bool.push(try!(is.read_bool()));
                         }
                         is.pop_limit(old_limit);
                     } else {
                         assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                        self.value_bool.push(is.read_bool());
+                        self.value_bool.push(try!(is.read_bool()));
                     }
                 },
                 _ => {
-                    let unknown = is.read_unknown(wire_type);
+                    let unknown = try!(is.read_unknown(wire_type));
                     self.mut_unknown_fields().add_value(field_number, unknown);
                 },
             };
         }
+        ::std::result::Ok(())
     }
 
     // Compute sizes of nested messages
@@ -1390,7 +1394,7 @@ impl<'a> HekaMessage {
     pub fn get_uuid(&'a self) -> &'a [u8] {
         match self.uuid.as_ref() {
             Some(ref v) => v.as_slice(),
-            None => {let x: &[u8] =  &[]; x},
+            None => [].as_slice(),
         }
     }
 
@@ -1655,66 +1659,67 @@ impl ::protobuf::Message for HekaMessage {
         true
     }
 
-    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) {
-        while !is.eof() {
-            let (field_number, wire_type) = is.read_tag_unpack();
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !try!(is.eof()) {
+            let (field_number, wire_type) = try!(is.read_tag_unpack());
             match field_number {
                 1 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.uuid.set_default();
-                    is.read_bytes_into(tmp)
+                    try!(is.read_bytes_into(tmp))
                 },
                 2 => {
                     assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                    let tmp = is.read_int64();
+                    let tmp = try!(is.read_int64());
                     self.timestamp = Some(tmp);
                 },
                 3 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.field_type.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 4 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.logger.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 5 => {
                     assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                    let tmp = is.read_int32();
+                    let tmp = try!(is.read_int32());
                     self.severity = Some(tmp);
                 },
                 6 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.payload.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 7 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.env_version.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 8 => {
                     assert_eq!(::protobuf::wire_format::WireTypeVarint, wire_type);
-                    let tmp = is.read_int32();
+                    let tmp = try!(is.read_int32());
                     self.pid = Some(tmp);
                 },
                 9 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.hostname.set_default();
-                    is.read_string_into(tmp)
+                    try!(is.read_string_into(tmp))
                 },
                 10 => {
                     assert_eq!(::protobuf::wire_format::WireTypeLengthDelimited, wire_type);
                     let tmp = self.fields.push_default();
-                    is.merge_message(tmp)
+                    try!(is.merge_message(tmp))
                 },
                 _ => {
-                    let unknown = is.read_unknown(wire_type);
+                    let unknown = try!(is.read_unknown(wire_type));
                     self.mut_unknown_fields().add_value(field_number, unknown);
                 },
             };
         }
+        ::std::result::Ok(())
     }
 
     // Compute sizes of nested messages

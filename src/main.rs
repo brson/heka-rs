@@ -3,6 +3,7 @@ extern crate getopts;
 extern crate heka;
 
 use std::path::Path;
+use std::io::fs::PathExtensions;
 use std::io::fs::File;
 use std::io::BufReader;
 use std::os;

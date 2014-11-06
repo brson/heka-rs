@@ -1,6 +1,6 @@
 use regex::Regex;
 use std;
-use std::collections::{DList, Deque};
+use std::collections::{DList};
 use message;
 use message::pb;
 use uuid::Uuid;
@@ -555,7 +555,7 @@ fn evaluate_node(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
                                 match n.op {
                                     Equal => a == b,
                                     NotEqual => a != b,
-                                    _ => fail!("invalid bool comparison operator"),
+                                    _ => panic!("invalid bool comparison operator"),
                                 }
                             },
                             None => false,
@@ -578,7 +578,7 @@ fn evaluate_node(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
                         match n.op {
                             Equal => r,
                             NotEqual => !r,
-                            _ => fail!("invalid NIL comparison operator"),
+                            _ => panic!("invalid NIL comparison operator"),
                         }
                     },
                 }
@@ -596,7 +596,7 @@ fn compare_string(op: &Op, a: &str, b: &str) -> bool {
         &LtEqual => a <= b,
         &Gt => a > b,
         &GtEqual => a >= b,
-        _ => fail!("invalid string comparison operator"),
+        _ => panic!("invalid string comparison operator"),
     }
 }
 
@@ -605,7 +605,7 @@ fn compare_re(op: &Op, a: &str, b: &Regex) -> bool {
     match op {
         &ReEqual => b.is_match(a),
         &ReNotEqual => !b.is_match(a),
-        _ => fail!("invalid re comparison operator"),
+        _ => panic!("invalid re comparison operator"),
     }
 }
 
@@ -618,7 +618,7 @@ fn compare_number(op: &Op, a: f64, b: f64) -> bool {
         &LtEqual => a <= b,
         &Gt => a > b,
         &GtEqual => a >= b,
-        _ => fail!("invalid number comparison operator"),
+        _ => panic!("invalid number comparison operator"),
     }
 }
 
@@ -630,7 +630,7 @@ fn test_string(a: &str, n: &Box<Node>) -> bool {
         Re(ref r) => {
             compare_re(&n.op, a, r)
         },
-        _ => fail!("unexpected value for test_string"),
+        _ => panic!("unexpected value for test_string"),
     }
 }
 
@@ -639,7 +639,7 @@ fn test_number(a: f64, n: &Box<Node>) -> bool {
         Number(f) => {
             compare_number(&n.op, a, f)
         },
-        _ => fail!("unexpected value for test_number"),
+        _ => panic!("unexpected value for test_number"),
     }
 }
 
@@ -697,7 +697,7 @@ mod test {
         let mut msg = pb::HekaMessage::new();
         let u = match Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479") {
             Ok(u) => u,
-            Err(_) => fail!("bad uuid"),
+            Err(_) => panic!("bad uuid"),
         };
         msg.set_uuid(u.as_bytes().to_vec());
         msg.set_timestamp(9000000000);
@@ -725,7 +725,7 @@ mod test {
     fn test_match(m: &pb::HekaMessage, s: &str) -> bool {
         let mm = match matcher::Matcher::new(s) {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         mm.is_match(m)
     }
@@ -857,7 +857,7 @@ mod test {
         let msg = get_test_message();
         let mm = match matcher::Matcher::new("Type == 'TEST' && Severity == 6") {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         b.iter(|| mm.is_match(&msg));
     }
@@ -867,7 +867,7 @@ mod test {
         let msg = get_test_message();
         let mm = match matcher::Matcher::new("Type =~ /^TEST/ && Severity == 6") {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         b.iter(|| mm.is_match(&msg));
     }
@@ -877,7 +877,7 @@ mod test {
         let msg = get_test_message();
         let mm = match matcher::Matcher::new("Type =~ /^(TEST)/ && Severity == 6") {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         b.iter(|| mm.is_match(&msg));
     }
@@ -887,7 +887,7 @@ mod test {
         let msg = get_test_message();
         let mm = match matcher::Matcher::new("Fields[foo] == 'bar' && Severity == 6") {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         b.iter(|| mm.is_match(&msg));
     }
@@ -897,7 +897,7 @@ mod test {
         let msg = get_test_message();
         let mm = match matcher::Matcher::new("Fields[number] == 64 && Severity == 6") {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         b.iter(|| mm.is_match(&msg));
     }
@@ -907,7 +907,7 @@ mod test {
         let msg = get_test_message();
         let mm = match matcher::Matcher::new("Fields[missing] == NIL") {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         b.iter(|| mm.is_match(&msg));
     }
@@ -917,7 +917,7 @@ mod test {
         let msg = get_test_message();
         let mm = match matcher::Matcher::new("Fields[int] != NIL") {
             Ok(m) => m,
-            Err(e) => fail!("{}", e.msg),
+            Err(e) => panic!("{}", e.msg),
         };
         b.iter(|| mm.is_match(&msg));
     }

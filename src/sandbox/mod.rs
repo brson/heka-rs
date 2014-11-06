@@ -645,7 +645,7 @@ extern fn read_config(lua: *mut LUA) -> c_int {
         let name = name.as_str().unwrap(); // Unlikely to fail
 
         let ref config_map = sandbox.config.config;
-        match config_map.find_equiv(&name) {
+        match config_map.find_equiv(name) {
             Some(val) if val.is::<String>() => {
                 let s: &String = val.downcast_ref::<String>().unwrap();
                 s.with_c_str(|cstr| lua_pushlstring(lua, cstr, s.len() as size_t));
@@ -672,7 +672,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
         pb::Field_STRING => {
             let mut len: size_t = 0;
             let a = field.mut_value_string();
-            let l = a.len();
+            let l = a.as_slice().len();
             if ai <= l {
                 unsafe {
                     let c: *const c_char = lua_tolstring(lua, varg, &mut len);
@@ -690,7 +690,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
         pb::Field_BYTES => {
             let mut len: size_t = 0;
             let a = field.mut_value_bytes();
-            let l = a.len();
+            let l = a.as_slice().len();
             if ai <= l {
                 unsafe {
                     let c: *const c_char = lua_tolstring(lua, varg, &mut len);

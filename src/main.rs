@@ -53,7 +53,7 @@ fn main() {
     };
     let mm = match message::matcher::Matcher::new(m.as_slice()) {
         Ok(m) => m,
-        Err(e) => fail!("invalid match at position({}): {}", e.pos, e.msg),
+        Err(e) => panic!("invalid match at position({}): {}", e.pos, e.msg),
     };
     let path : Path = Path::new(input);
     let mut hps = splitter::HekaProtobufStream::new(File::open(&path), 1024*64+255+3); // max message size + header + seperators
@@ -64,7 +64,7 @@ fn main() {
         Err(_) => lsb.init("".as_bytes())
     };
     if r != 0 {
-        fail!("sandbox_init failed {} {}", r, lsb.last_error());
+        panic!("sandbox_init failed {} {}", r, lsb.last_error());
     }
 
     let mut count = 0u;

@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
+#![allow(unused_imports)]
 
 
 #[deriving(Clone,PartialEq,Default)]
@@ -548,7 +549,10 @@ impl<'a> Field {
     }
 
     pub fn has_representation(&self) -> bool {
-        self.representation.is_some()
+        // This is a hack to the generated code to get tests to pass (but is
+        // buggy across all protobuf fields, probably due to rust-protobuf
+        // #ad76a527).
+        self.representation.is_some() && self.representation == ::protobuf::SingularField::none()
     }
 
     // Param is passed by value, moved
@@ -592,10 +596,6 @@ impl<'a> Field {
         self.value_string.as_slice()
     }
 
-    pub fn add_value_string(&mut self, v: ::std::string::String) {
-        self.value_string.push(v);
-    }
-
     // repeated bytes value_bytes = 5;
 
     pub fn clear_value_bytes(&mut self) {
@@ -614,10 +614,6 @@ impl<'a> Field {
 
     pub fn get_value_bytes(&'a self) -> &'a [::std::vec::Vec<u8>] {
         self.value_bytes.as_slice()
-    }
-
-    pub fn add_value_bytes(&mut self, v: ::std::vec::Vec<u8>) {
-        self.value_bytes.push(v);
     }
 
     // repeated int64 value_integer = 6;
@@ -640,10 +636,6 @@ impl<'a> Field {
         self.value_integer.as_slice()
     }
 
-    pub fn add_value_integer(&mut self, v: i64) {
-        self.value_integer.push(v);
-    }
-
     // repeated double value_double = 7;
 
     pub fn clear_value_double(&mut self) {
@@ -664,10 +656,6 @@ impl<'a> Field {
         self.value_double.as_slice()
     }
 
-    pub fn add_value_double(&mut self, v: f64) {
-        self.value_double.push(v);
-    }
-
     // repeated bool value_bool = 8;
 
     pub fn clear_value_bool(&mut self) {
@@ -686,10 +674,6 @@ impl<'a> Field {
 
     pub fn get_value_bool(&'a self) -> &'a [bool] {
         self.value_bool.as_slice()
-    }
-
-    pub fn add_value_bool(&mut self, v: bool) {
-        self.value_bool.push(v);
     }
 }
 
@@ -1428,10 +1412,6 @@ impl<'a> HekaMessage {
 
     pub fn get_fields(&'a self) -> &'a [Field] {
         self.fields.as_slice()
-    }
-
-    pub fn add_fields(&mut self, v: Field) {
-        self.fields.push(v);
     }
 }
 

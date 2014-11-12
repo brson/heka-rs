@@ -124,7 +124,7 @@ impl Matcher {
                     if m.expect as int != Conditional as int || !m.match_condition(s.slice_from(pos), &mut pos) {
                         return Err(Error{pos: pos, msg: m.msg});
                     }
-                    m.output.push(m.node);
+                    m.output.push_back(m.node);
                     m.expect = LogicalOperator;
                 }
             }
@@ -132,7 +132,7 @@ impl Matcher {
         }
 
         if m.pop_remaining_ops() && m.output.len() == 1 {
-            match m.output.pop() {
+            match m.output.pop_back() {
                 Some(n) => {
                     m.node = n;
                     Ok(m)
@@ -152,9 +152,9 @@ impl Matcher {
 
     fn push_op(&mut self, n: Box<Node>) {
         let mut mn = n;
-        mn.right = self.output.pop();
-        mn.left = self.output.pop();
-        self.output.push(mn);
+        mn.right = self.output.pop_back();
+        mn.left = self.output.pop_back();
+        self.output.push_back(mn);
     }
 
     fn pop_to_matching_paren(&mut self) -> bool {
@@ -654,43 +654,43 @@ mod test {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_INTEGER);
         f.set_name(name.into_string());
-        f.add_value_integer(val);
+        f.mut_value_integer().push(val);
         if val == 999 {
-            f.add_value_integer(1024);
+            f.mut_value_integer().push(1024);
         }
-        m.add_fields(f);
+        m.mut_fields().push(f);
     }
 
     fn add_field_double(m: &mut pb::HekaMessage, name: &str, val: f64) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_DOUBLE);
         f.set_name(name.into_string());
-        f.add_value_double(val);
-        m.add_fields(f);
+        f.mut_value_double().push(val);
+        m.mut_fields().push(f);
     }
 
     fn add_field_bool(m: &mut pb::HekaMessage, name: &str, val: bool) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_BOOL);
         f.set_name(name.into_string());
-        f.add_value_bool(val);
-        m.add_fields(f);
+        f.mut_value_bool().push(val);
+        m.mut_fields().push(f);
     }
 
     fn add_field_string(m: &mut pb::HekaMessage, name: &str, val: &str) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_STRING);
         f.set_name(name.into_string());
-        f.add_value_string(val.into_string());
-        m.add_fields(f);
+        f.mut_value_string().push(val.into_string());
+        m.mut_fields().push(f);
     }
 
     fn add_field_bytes(m: &mut pb::HekaMessage, name: &str, val: Vec<u8>) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_STRING);
         f.set_name(name.into_string());
-        f.add_value_bytes(val);
-        m.add_fields(f);
+        f.mut_value_bytes().push(val);
+        m.mut_fields().push(f);
     }
 
     fn get_test_message() -> pb::HekaMessage {

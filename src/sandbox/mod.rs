@@ -680,7 +680,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                     if ai == l {
                         a.push(v);
                     } else {
-                        *a.get_mut(ai) = v;
+                        a[ai] = v;
                     }
                 }
             } else {
@@ -698,7 +698,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                     if ai == l {
                         a.push(v);
                     } else {
-                        *a.get_mut(ai) = v;
+                        a[ai] = v;
                     }
                 }
             } else {
@@ -714,7 +714,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                     if ai == l {
                         a.push(v);
                     } else {
-                        *a.get_mut(ai) = v;
+                        *a.get_mut(ai).unwrap() = v;
                     }
                 }
             } else {
@@ -730,7 +730,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                     if ai == l {
                         a.push(v);
                     } else {
-                        *a.get_mut(ai) = v;
+                        *a.get_mut(ai).unwrap() = v;
                     }
                 }
             } else {
@@ -746,7 +746,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                     if ai == l {
                         a.push(v);
                     } else {
-                        *a.get_mut(ai) = v;
+                        *a.get_mut(ai).unwrap() = v;
                     }
                 }
             } else {
@@ -843,7 +843,7 @@ extern fn write_message(lua: *mut LUA) -> c_int {
                 match get_field_name(field.as_slice())
                 {
                     Some(name) => {
-                        let mut nf:  Option<pb::Field> = None; // todo Brian better way to allow the add_fields() in None?
+                        let mut nf:  Option<pb::Field> = None; // todo Brian better way to allow the.mut_fields().push() in None?
                         let r = std::string::raw::from_buf(r as *const u8);
                         match find_field_mut(msg, name, fi as uint)
                         {
@@ -875,7 +875,7 @@ extern fn write_message(lua: *mut LUA) -> c_int {
                             }
                         }
                         if nf.is_some() {
-                            msg.add_fields(nf.unwrap());
+                            msg.mut_fields().push(nf.unwrap());
                         }
                     }
                     None => {
@@ -900,7 +900,7 @@ mod test {
         let mut msg = pb::HekaMessage::new();
         let u = match Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479") {
             Ok(u) => u,
-            Err(_) => fail!("bad uuid"),
+            Err(_) => panic!("bad uuid"),
         };
         msg.set_uuid(u.as_bytes().to_vec());
         msg.set_timestamp(5123456789);
@@ -914,46 +914,46 @@ mod test {
         let mut f0 = pb::Field::new();
         f0.set_value_type(pb::Field_STRING);
         f0.set_name("foo".into_string());
-        f0.add_value_string("bar".into_string());
+        f0.mut_value_string().push("bar".into_string());
         f0.set_representation("test".into_string());
-        msg.add_fields(f0);
+        msg.mut_fields().push(f0);
 
         let mut f1 = pb::Field::new();
         f1.set_value_type(pb::Field_BYTES);
         f1.set_name("bytes".into_string());
-        f1.add_value_bytes(b"data".to_vec());
-        msg.add_fields(f1);
+        f1.mut_value_bytes().push(b"data".to_vec());
+        msg.mut_fields().push(f1);
 
         let mut f2 = pb::Field::new();
         f2.set_value_type(pb::Field_INTEGER);
         f2.set_name("int".into_string());
-        f2.add_value_integer(999);
-        f2.add_value_integer(1024);
-        msg.add_fields(f2);
+        f2.mut_value_integer().push(999);
+        f2.mut_value_integer().push(1024);
+        msg.mut_fields().push(f2);
 
         let mut f3 = pb::Field::new();
         f3.set_value_type(pb::Field_DOUBLE);
         f3.set_name("double".into_string());
-        f3.add_value_double(99.9);
-        msg.add_fields(f3);
+        f3.mut_value_double().push(99.9);
+        msg.mut_fields().push(f3);
 
         let mut f4 = pb::Field::new();
         f4.set_value_type(pb::Field_BOOL);
         f4.set_name("bool".into_string());
-        f4.add_value_bool(true);
-        msg.add_fields(f4);
+        f4.mut_value_bool().push(true);
+        msg.mut_fields().push(f4);
 
         let mut f5 = pb::Field::new();
         f5.set_value_type(pb::Field_STRING);
         f5.set_name("foo".into_string());
-        f5.add_value_string("alternate".into_string());
-        msg.add_fields(f5);
+        f5.mut_value_string().push("alternate".into_string());
+        msg.mut_fields().push(f5);
 
         let mut f6 = pb::Field::new();
         f6.set_value_type(pb::Field_BOOL);
         f6.set_name("false".into_string());
-        f6.add_value_bool(false);
-        msg.add_fields(f6);
+        f6.mut_value_bool().push(false);
+        msg.mut_fields().push(f6);
 
         return msg
     }
@@ -1019,7 +1019,7 @@ mod test {
         m.as_mut().unwrap().set_hostname(String::from_str("hostname"));
         let u = match Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479") {
             Ok(u) => u,
-            Err(_) => fail!("bad uuid"),
+            Err(_) => panic!("bad uuid"),
         };
         m.as_mut().unwrap().set_uuid(u.as_bytes().to_vec());
         m.as_mut().unwrap().set_timestamp(999);
@@ -1028,20 +1028,20 @@ mod test {
         let mut f = pb::Field::new();
         f.set_name("test".into_string());
         f.set_value_type(pb::Field_STRING);
-        f.add_value_string("foo".into_string());
-        f.add_value_string("bar".into_string());
-        m.as_mut().unwrap().add_fields(f);
+        f.mut_value_string().push("foo".into_string());
+        f.mut_value_string().push("bar".into_string());
+        m.as_mut().unwrap().mut_fields().push(f);
         let mut f1 = pb::Field::new();
         f1.set_name("widget".into_string());
         f1.set_value_type(pb::Field_INTEGER);
-        f1.add_value_integer(222);
-        m.as_mut().unwrap().add_fields(f1);
+        f1.mut_value_integer().push(222);
+        m.as_mut().unwrap().mut_fields().push(f1);
         let mut f2 = pb::Field::new();
         f2.set_name("test".into_string());
         f2.set_value_type(pb::Field_STRING);
-        f2.add_value_string("foo1".into_string());
-        f2.add_value_string("bar1".into_string());
-        m.as_mut().unwrap().add_fields(f2);
+        f2.mut_value_string().push("foo1".into_string());
+        f2.mut_value_string().push("bar1".into_string());
+        m.as_mut().unwrap().mut_fields().push(f2);
         let (rc, _) = sb.process_message(m.take().unwrap());
         assert!(rc == 0, "{}", sb.last_error());
         assert!(sb.destroy("".as_bytes()).is_empty());

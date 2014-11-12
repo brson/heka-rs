@@ -1,5 +1,5 @@
 [package]
-build = "./build.sh"
+build = "build.rs"
 name = "heka"
 version = "0.0.1"
 authors = ["Mike Trinkala <trink@mozilla.com>"]
@@ -17,6 +17,9 @@ doctest = false
 bench = false
 doc = false
 plugin = false
+
+[dependencies.rlibc]
+git = "https://github.com/rust-lang/rlibc"
 
 [dependencies.protobuf]
 git = "https://github.com/stepancheg/rust-protobuf"

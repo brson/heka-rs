@@ -51,7 +51,7 @@ pub fn get_field_number<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: 
     {
         Some(f) => {
             match f.get_value_type() {
-                pb::Field_INTEGER => {
+                pb::Field_ValueType::INTEGER => {
                     let a = f.get_value_integer();
                     let l = a.len();
                     if ai < l {
@@ -60,7 +60,7 @@ pub fn get_field_number<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: 
                         None
                     }
                 },
-                pb::Field_DOUBLE => {
+                pb::Field_ValueType::DOUBLE => {
                     let a = f.get_value_double();
                     let l = a.len();
                     if ai < l {

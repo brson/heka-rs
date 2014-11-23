@@ -1,3 +1,4 @@
+extern crate libc;
 use libc::{c_int, c_uint, c_char, size_t, c_longlong, c_void, c_double};
 use protobuf;
 use std;
@@ -6,6 +7,9 @@ use std::collections::HashMap;
 use std::c_str::CString;
 use super::message::pb;
 use uuid::Uuid;
+
+use self::lua_pseudo_index::{LUA_GLOBALSINDEX, LUA_UPVALUEINDEX};
+use self::lsb_state::{UNKNOWN,RUNNING,TERMINATED};
 
 
 //trait Sandbox {
@@ -21,25 +25,25 @@ use uuid::Uuid;
 
 #[repr(C)]
 pub enum lsb_state {
-  STATE_UNKNOWN      = 0,
-  STATE_RUNNING      = 1,
-  STATE_TERMINATED   = 2
+  UNKNOWN      = 0,
+  RUNNING      = 1,
+  TERMINATED   = 2
 }
 
 #[repr(C)]
 pub enum lsb_usage_type {
-  TYPE_MEMORY       = 0,
-  TYPE_INSTRUCTION  = 1,
-  TYPE_OUTPUT       = 2,
-  TYPE_MAX
+  MEMORY       = 0,
+  INSTRUCTION  = 1,
+  OUTPUT       = 2,
+  MAX
 }
 
 #[repr(C)]
 pub enum lsb_usage_stat {
-  STAT_LIMIT    = 0,
-  STAT_CURRENT  = 1,
-  STAT_MAXIMUM  = 2,
-  STAT_MAX
+  LIMIT    = 0,
+  CURRENT  = 1,
+  MAXIMUM  = 2,
+  MAX
 }
 
 #[repr(C)]
@@ -198,7 +202,7 @@ impl<'a> LuaSandbox<'a> {
     pub fn state(&mut self) -> lsb_state {
         unsafe {
             if self.lsb == std::ptr::null_mut() {
-                return STATE_UNKNOWN;
+                return UNKNOWN;
             }
             return lsb_get_state(self.lsb);
         }
@@ -455,7 +459,7 @@ fn get_field_name<'a>(key: &'a str) -> Option<&'a str> {
 
 fn push_field(lua: *mut LUA, field: &pb::Field, ai: uint) -> uint {
     match field.get_value_type() {
-        pb::Field_STRING => {
+        pb::Field_ValueType::STRING => {
             let v = field.get_value_string();
             if ai < v.len() {
                 let ref s = v[ai].as_slice();
@@ -465,7 +469,7 @@ fn push_field(lua: *mut LUA, field: &pb::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        pb::Field_BYTES => {
+        pb::Field_ValueType::BYTES => {
             let v = field.get_value_bytes();
             if ai < v.len() {
                 let ref s = v[ai];
@@ -475,7 +479,7 @@ fn push_field(lua: *mut LUA, field: &pb::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        pb::Field_INTEGER => {
+        pb::Field_ValueType::INTEGER => {
             let v = field.get_value_integer();
             if ai < v.len() {
                 unsafe {
@@ -484,7 +488,7 @@ fn push_field(lua: *mut LUA, field: &pb::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        pb::Field_DOUBLE => {
+        pb::Field_ValueType::DOUBLE => {
             let v = field.get_value_double();
             if ai < v.len() {
                 unsafe {
@@ -493,7 +497,7 @@ fn push_field(lua: *mut LUA, field: &pb::Field, ai: uint) -> uint {
                 return v.len();
             }
         }
-        pb::Field_BOOL => {
+        pb::Field_ValueType::BOOL => {
             let v = field.get_value_bool();
             if ai < v.len() {
                 unsafe {
@@ -645,7 +649,7 @@ extern fn read_config(lua: *mut LUA) -> c_int {
         let name = name.as_str().unwrap(); // Unlikely to fail
 
         let ref config_map = sandbox.config.config;
-        match config_map.find_equiv(name) {
+        match config_map.get(name) {
             Some(val) if val.is::<String>() => {
                 let s: &String = val.downcast_ref::<String>().unwrap();
                 s.with_c_str(|cstr| lua_pushlstring(lua, cstr, s.len() as size_t));
@@ -669,7 +673,7 @@ extern fn read_config(lua: *mut LUA) -> c_int {
 
 fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
     match field.get_value_type() {
-        pb::Field_STRING => {
+        pb::Field_ValueType::STRING => {
             let mut len: size_t = 0;
             let a = field.mut_value_string();
             let l = a.as_slice().len();
@@ -687,7 +691,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        pb::Field_BYTES => {
+        pb::Field_ValueType::BYTES => {
             let mut len: size_t = 0;
             let a = field.mut_value_bytes();
             let l = a.as_slice().len();
@@ -705,7 +709,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        pb::Field_INTEGER => {
+        pb::Field_ValueType::INTEGER => {
             let a = field.mut_value_integer();
             let l = a.len();
             if ai <= l {
@@ -721,7 +725,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        pb::Field_DOUBLE => {
+        pb::Field_ValueType::DOUBLE => {
             let a = field.mut_value_double();
             let l = a.len();
             if ai <= l {
@@ -737,7 +741,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
                 argcheck(lua, false, 5, "invalid index");
             }
         }
-        pb::Field_BOOL => {
+        pb::Field_ValueType::BOOL => {
             let a = field.mut_value_bool();
             let l = a.len();
             if ai <= l {
@@ -835,10 +839,10 @@ extern fn write_message(lua: *mut LUA) -> c_int {
             }
             _ => {
                 let t = match t {
-                    4 => pb::Field_STRING,
-                    3 => pb::Field_DOUBLE,
-                    1 => pb::Field_BOOL,
-                    _ => pb::Field_STRING
+                    4 => pb::Field_ValueType::STRING,
+                    3 => pb::Field_ValueType::DOUBLE,
+                    1 => pb::Field_ValueType::BOOL,
+                    _ => pb::Field_ValueType::STRING
                 };
                 match get_field_name(field.as_slice())
                 {
@@ -912,45 +916,45 @@ mod test {
         msg.set_hostname("example.com".into_string());
 
         let mut f0 = pb::Field::new();
-        f0.set_value_type(pb::Field_STRING);
+        f0.set_value_type(pb::Field_ValueType::STRING);
         f0.set_name("foo".into_string());
         f0.mut_value_string().push("bar".into_string());
         f0.set_representation("test".into_string());
         msg.mut_fields().push(f0);
 
         let mut f1 = pb::Field::new();
-        f1.set_value_type(pb::Field_BYTES);
+        f1.set_value_type(pb::Field_ValueType::BYTES);
         f1.set_name("bytes".into_string());
         f1.mut_value_bytes().push(b"data".to_vec());
         msg.mut_fields().push(f1);
 
         let mut f2 = pb::Field::new();
-        f2.set_value_type(pb::Field_INTEGER);
+        f2.set_value_type(pb::Field_ValueType::INTEGER);
         f2.set_name("int".into_string());
         f2.mut_value_integer().push(999);
         f2.mut_value_integer().push(1024);
         msg.mut_fields().push(f2);
 
         let mut f3 = pb::Field::new();
-        f3.set_value_type(pb::Field_DOUBLE);
+        f3.set_value_type(pb::Field_ValueType::DOUBLE);
         f3.set_name("double".into_string());
         f3.mut_value_double().push(99.9);
         msg.mut_fields().push(f3);
 
         let mut f4 = pb::Field::new();
-        f4.set_value_type(pb::Field_BOOL);
+        f4.set_value_type(pb::Field_ValueType::BOOL);
         f4.set_name("bool".into_string());
         f4.mut_value_bool().push(true);
         msg.mut_fields().push(f4);
 
         let mut f5 = pb::Field::new();
-        f5.set_value_type(pb::Field_STRING);
+        f5.set_value_type(pb::Field_ValueType::STRING);
         f5.set_name("foo".into_string());
         f5.mut_value_string().push("alternate".into_string());
         msg.mut_fields().push(f5);
 
         let mut f6 = pb::Field::new();
-        f6.set_value_type(pb::Field_BOOL);
+        f6.set_value_type(pb::Field_ValueType::BOOL);
         f6.set_name("false".into_string());
         f6.mut_value_bool().push(false);
         msg.mut_fields().push(f6);
@@ -962,7 +966,7 @@ mod test {
     fn init_failed() {
         let mut sb = sandbox::LuaSandbox::new("test/not_found.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
         assert!(0 != sb.init("".as_bytes()));
-        assert!(sb.state() as int == sandbox::STATE_TERMINATED as int);
+        assert!(sb.state() as int == sandbox::lsb_state::TERMINATED as int);
         assert!(sb.last_error().as_slice() == "cannot open test/not_found.lua: No such file or directory");
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
@@ -970,17 +974,17 @@ mod test {
     #[test]
     fn init() {
         let mut sb = sandbox::LuaSandbox::new("test/hello_world.lua".as_bytes(), "".as_bytes(), 32767, 1000, 1024);
-        assert!(1000 == sb.usage(sandbox::TYPE_INSTRUCTION, sandbox::STAT_LIMIT));
-        assert!(1024 == sb.usage(sandbox::TYPE_OUTPUT, sandbox::STAT_LIMIT));
+        assert!(1000 == sb.usage(sandbox::lsb_usage_type::INSTRUCTION, sandbox::lsb_usage_stat::LIMIT));
+        assert!(1024 == sb.usage(sandbox::lsb_usage_type::OUTPUT, sandbox::lsb_usage_stat::LIMIT));
         assert!(0 == sb.init("".as_bytes()));
-        assert!(sb.state() as int == sandbox::STATE_RUNNING as int); // todo ask Brian how to test without the conversion
-        assert!(0 < sb.usage(sandbox::TYPE_MEMORY, sandbox::STAT_CURRENT));
-        assert!(0 < sb.usage(sandbox::TYPE_MEMORY, sandbox::STAT_MAXIMUM));
-        assert!(0 < sb.usage(sandbox::TYPE_MEMORY, sandbox::STAT_LIMIT));
-        assert!(0 < sb.usage(sandbox::TYPE_INSTRUCTION, sandbox::STAT_CURRENT));
-        assert!(0 < sb.usage(sandbox::TYPE_INSTRUCTION, sandbox::STAT_MAXIMUM));
-        assert!(0 < sb.usage(sandbox::TYPE_OUTPUT, sandbox::STAT_CURRENT));
-        assert!(0 < sb.usage(sandbox::TYPE_OUTPUT, sandbox::STAT_MAXIMUM));
+        assert!(sb.state() as int == sandbox::lsb_state::RUNNING as int); // todo ask Brian how to test without the conversion
+        assert!(0 < sb.usage(sandbox::lsb_usage_type::MEMORY, sandbox::lsb_usage_stat::CURRENT));
+        assert!(0 < sb.usage(sandbox::lsb_usage_type::MEMORY, sandbox::lsb_usage_stat::MAXIMUM));
+        assert!(0 < sb.usage(sandbox::lsb_usage_type::MEMORY, sandbox::lsb_usage_stat::LIMIT));
+        assert!(0 < sb.usage(sandbox::lsb_usage_type::INSTRUCTION, sandbox::lsb_usage_stat::CURRENT));
+        assert!(0 < sb.usage(sandbox::lsb_usage_type::INSTRUCTION, sandbox::lsb_usage_stat::MAXIMUM));
+        assert!(0 < sb.usage(sandbox::lsb_usage_type::OUTPUT, sandbox::lsb_usage_stat::CURRENT));
+        assert!(0 < sb.usage(sandbox::lsb_usage_type::OUTPUT, sandbox::lsb_usage_stat::MAXIMUM));
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
 
@@ -991,7 +995,7 @@ mod test {
         let mut m = Some(box pb::HekaMessage::new());
         let (rc, _) = sb.process_message(m.take().unwrap());
         assert!(rc != 0);
-        assert!(sb.state() as int == sandbox::STATE_TERMINATED as int);
+        assert!(sb.state() as int == sandbox::lsb_state::TERMINATED as int);
         assert!(sb.last_error().as_slice() == "process_message() function was not found");
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
@@ -1002,7 +1006,7 @@ mod test {
         assert!(0 == sb.init("".as_bytes()));
         let rc = sb.timer_event(0);
         assert!(rc != 0);
-        assert!(sb.state() as int == sandbox::STATE_TERMINATED as int);
+        assert!(sb.state() as int == sandbox::lsb_state::TERMINATED as int);
         assert!(sb.last_error().as_slice() == "timer_event() function was not found");
         assert!(sb.destroy("".as_bytes()).is_empty());
     }
@@ -1027,18 +1031,18 @@ mod test {
         m.as_mut().unwrap().set_pid(23);
         let mut f = pb::Field::new();
         f.set_name("test".into_string());
-        f.set_value_type(pb::Field_STRING);
+        f.set_value_type(pb::Field_ValueType::STRING);
         f.mut_value_string().push("foo".into_string());
         f.mut_value_string().push("bar".into_string());
         m.as_mut().unwrap().mut_fields().push(f);
         let mut f1 = pb::Field::new();
         f1.set_name("widget".into_string());
-        f1.set_value_type(pb::Field_INTEGER);
+        f1.set_value_type(pb::Field_ValueType::INTEGER);
         f1.mut_value_integer().push(222);
         m.as_mut().unwrap().mut_fields().push(f1);
         let mut f2 = pb::Field::new();
         f2.set_name("test".into_string());
-        f2.set_value_type(pb::Field_STRING);
+        f2.set_value_type(pb::Field_ValueType::STRING);
         f2.mut_value_string().push("foo1".into_string());
         f2.mut_value_string().push("bar1".into_string());
         m.as_mut().unwrap().mut_fields().push(f2);
@@ -1134,34 +1138,34 @@ mod test {
         assert!(m.as_ref().unwrap().get_pid() == 12345);
         let f = m.as_ref().unwrap().get_fields();
         assert!(f.len() == 6, "{}", f.len());
-        assert!(f[0].get_value_type() == pb::Field_STRING, "{}", f[0].get_value_type() as int);
+        assert!(f[0].get_value_type() == pb::Field_ValueType::STRING, "{}", f[0].get_value_type() as int);
         assert!(f[0].get_name().as_slice() == "String");
         assert!(f[0].get_value_string().len() == 1);
         assert!(f[0].get_value_string()[0].as_slice() == "foo");
         assert!(!f[0].has_representation());
-        assert!(f[1].get_value_type() == pb::Field_DOUBLE, "{}", f[1].get_value_type() as int);
+        assert!(f[1].get_value_type() == pb::Field_ValueType::DOUBLE, "{}", f[1].get_value_type() as int);
         assert!(f[1].get_name().as_slice() == "Float");
         assert!(f[1].get_value_double().len() == 1);
         assert!(f[1].get_value_double()[0] == 1.2345);
         assert!(!f[1].has_representation());
-        assert!(f[2].get_value_type() == pb::Field_DOUBLE, "{}", f[2].get_value_type() as int);
+        assert!(f[2].get_value_type() == pb::Field_ValueType::DOUBLE, "{}", f[2].get_value_type() as int);
         assert!(f[2].get_name().as_slice() == "Int");
         assert!(f[2].get_value_double().len() == 2);
         assert!(f[2].get_value_double()[0] == 123f64);
         assert!(f[2].get_value_double()[1] == 456f64);
         assert!(f[2].get_representation().as_slice() == "count");
-        assert!(f[3].get_value_type() == pb::Field_BOOL, "{}", f[3].get_value_type() as int);
+        assert!(f[3].get_value_type() == pb::Field_ValueType::BOOL, "{}", f[3].get_value_type() as int);
         assert!(f[3].get_name().as_slice() == "Bool");
         assert!(f[3].get_value_bool().len() == 1);
         assert!(f[3].get_value_bool()[0] == true);
         assert!(!f[3].has_representation());
-        assert!(f[4].get_value_type() == pb::Field_BOOL, "{}", f[4].get_value_type() as int);
+        assert!(f[4].get_value_type() == pb::Field_ValueType::BOOL, "{}", f[4].get_value_type() as int);
         assert!(f[4].get_name().as_slice() == "Bool");
         assert!(f[4].get_value_bool().len() == 2);
         assert!(f[4].get_value_bool()[0] == false);
         assert!(f[4].get_value_bool()[1] == false);
         assert!(!f[4].has_representation());
-        assert!(f[5].get_value_type() == pb::Field_STRING, "{}", f[5].get_value_type() as int);
+        assert!(f[5].get_value_type() == pb::Field_ValueType::STRING, "{}", f[5].get_value_type() as int);
         assert!(f[5].get_name().as_slice() == "");
         assert!(f[5].get_value_string().len() == 1);
         assert!(f[5].get_value_string()[0].as_slice() == "bad idea");

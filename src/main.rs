@@ -27,22 +27,22 @@ fn main() {
         optopt("o", "output", "set output file name", "heka_cat.hpb"),
         optflag("h", "help", "print this help menu")
     ];
-    let matches = match getopts(args.tail(), opts) {
+    let matches = match getopts(args.tail(), &opts) {
         Ok(m) => { m }
         Err(f) => {
             println!("{}\n", f.to_string());
-            print_usage(program.as_slice(), opts);
+            print_usage(program.as_slice(), &opts);
             return;
         }
     };
     if matches.opt_present("h") {
-        print_usage(program.as_slice(), opts);
+        print_usage(program.as_slice(), &opts);
         return;
     }
     let input = if !matches.free.is_empty() {
         matches.free[0].clone()
     } else {
-        print_usage(program.as_slice(), opts);
+        print_usage(program.as_slice(), &opts);
         return;
     };
 

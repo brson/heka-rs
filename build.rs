@@ -13,9 +13,9 @@ use std::path::posix::SEP;
 fn main() {
     let out_dir = os::getenv("OUT_DIR").unwrap();
     let out_path = Path::new(out_dir.as_slice());
-    let root_path = os::getcwd();
+    let root_path = os::getcwd().unwrap();
 
-    os::change_dir(&out_path);
+    os::change_dir(&out_path).unwrap();
 
     let cmake_status = match Command::new("cmake").arg(
         "-DCMAKE_BUILD_TYPE=release").arg(root_path).status() {

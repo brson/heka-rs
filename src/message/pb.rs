@@ -5,6 +5,8 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_imports)]
 
+use protobuf::Message as Message_imported_for_functions;
+use protobuf::ProtobufEnum as ProtobufEnum_imported_for_functions;
 
 #[deriving(Clone,Default)]
 pub struct Header {
@@ -17,7 +19,7 @@ pub struct Header {
     cached_size: ::std::cell::Cell<u32>,
 }
 
-impl<'a> Header {
+impl Header {
     pub fn new() -> Header {
         ::std::default::Default::default()
     }
@@ -45,7 +47,7 @@ impl<'a> Header {
     // required uint32 message_length = 1;
 
     pub fn clear_message_length(&mut self) {
-        self.message_length = None;
+        self.message_length = ::std::option::None;
     }
 
     pub fn has_message_length(&self) -> bool {
@@ -54,17 +56,17 @@ impl<'a> Header {
 
     // Param is passed by value, moved
     pub fn set_message_length(&mut self, v: u32) {
-        self.message_length = Some(v);
+        self.message_length = ::std::option::Some(v);
     }
 
-    pub fn get_message_length(&self) -> u32 {
+    pub fn get_message_length<'a>(&self) -> u32 {
         self.message_length.unwrap_or(0)
     }
 
     // optional .message.Header.HmacHashFunction hmac_hash_function = 3;
 
     pub fn clear_hmac_hash_function(&mut self) {
-        self.hmac_hash_function = None;
+        self.hmac_hash_function = ::std::option::None;
     }
 
     pub fn has_hmac_hash_function(&self) -> bool {
@@ -73,10 +75,10 @@ impl<'a> Header {
 
     // Param is passed by value, moved
     pub fn set_hmac_hash_function(&mut self, v: Header_HmacHashFunction) {
-        self.hmac_hash_function = Some(v);
+        self.hmac_hash_function = ::std::option::Some(v);
     }
 
-    pub fn get_hmac_hash_function(&self) -> Header_HmacHashFunction {
+    pub fn get_hmac_hash_function<'a>(&self) -> Header_HmacHashFunction {
         self.hmac_hash_function.unwrap_or(Header_HmacHashFunction::MD5)
     }
 
@@ -97,14 +99,19 @@ impl<'a> Header {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_hmac_signer(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_hmac_signer<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.hmac_signer.is_none() {
             self.hmac_signer.set_default();
         };
         self.hmac_signer.as_mut().unwrap()
     }
 
-    pub fn get_hmac_signer(&'a self) -> &'a str {
+    // Take field
+    pub fn take_hmac_signer(&mut self) -> ::std::string::String {
+        self.hmac_signer.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_hmac_signer<'a>(&'a self) -> &'a str {
         match self.hmac_signer.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -114,7 +121,7 @@ impl<'a> Header {
     // optional uint32 hmac_key_version = 5;
 
     pub fn clear_hmac_key_version(&mut self) {
-        self.hmac_key_version = None;
+        self.hmac_key_version = ::std::option::None;
     }
 
     pub fn has_hmac_key_version(&self) -> bool {
@@ -123,10 +130,10 @@ impl<'a> Header {
 
     // Param is passed by value, moved
     pub fn set_hmac_key_version(&mut self, v: u32) {
-        self.hmac_key_version = Some(v);
+        self.hmac_key_version = ::std::option::Some(v);
     }
 
-    pub fn get_hmac_key_version(&self) -> u32 {
+    pub fn get_hmac_key_version<'a>(&self) -> u32 {
         self.hmac_key_version.unwrap_or(0)
     }
 
@@ -147,14 +154,19 @@ impl<'a> Header {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_hmac(&'a mut self) -> &'a mut ::std::vec::Vec<u8> {
+    pub fn mut_hmac<'a>(&'a mut self) -> &'a mut ::std::vec::Vec<u8> {
         if self.hmac.is_none() {
             self.hmac.set_default();
         };
         self.hmac.as_mut().unwrap()
     }
 
-    pub fn get_hmac(&'a self) -> &'a [u8] {
+    // Take field
+    pub fn take_hmac(&mut self) -> ::std::vec::Vec<u8> {
+        self.hmac.take().unwrap_or_else(|| ::std::vec::Vec::new())
+    }
+
+    pub fn get_hmac<'a>(&'a self) -> &'a [u8] {
         match self.hmac.as_ref() {
             Some(v) => v.as_slice(),
             None => [].as_slice(),
@@ -183,14 +195,14 @@ impl ::protobuf::Message for Header {
                         return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_uint32());
-                    self.message_length = Some(tmp);
+                    self.message_length = ::std::option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
-                    let tmp = Header_HmacHashFunction::new(try!(is.read_int32()));
-                    self.hmac_hash_function = Some(tmp);
+                    let tmp = try!(is.read_enum());
+                    self.hmac_hash_function = ::std::option::Some(tmp);
                 },
                 4 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
@@ -204,7 +216,7 @@ impl ::protobuf::Message for Header {
                         return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_uint32());
-                    self.hmac_key_version = Some(tmp);
+                    self.hmac_key_version = ::std::option::Some(tmp);
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
@@ -224,7 +236,6 @@ impl ::protobuf::Message for Header {
 
     // Compute sizes of nested messages
     fn compute_size(&self) -> u32 {
-        use protobuf::{Message};
         let mut my_size = 0;
         for value in self.message_length.iter() {
             my_size += ::protobuf::rt::value_size(1, *value, ::protobuf::wire_format::WireTypeVarint);
@@ -247,36 +258,20 @@ impl ::protobuf::Message for Header {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
-        use protobuf::{Message};
-        match self.message_length {
-            Some(v) => {
-                try!(os.write_uint32(1, v));
-            },
-            None => {},
+        if let Some(v) = self.message_length {
+            try!(os.write_uint32(1, v));
         };
-        match self.hmac_hash_function {
-            Some(v) => {
-                try!(os.write_enum(3, v as i32));
-            },
-            None => {},
+        if let Some(v) = self.hmac_hash_function {
+            try!(os.write_enum(3, v as i32));
         };
-        match self.hmac_signer.as_ref() {
-            Some(v) => {
-                try!(os.write_string(4, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.hmac_signer.as_ref() {
+            try!(os.write_string(4, v.as_slice()));
         };
-        match self.hmac_key_version {
-            Some(v) => {
-                try!(os.write_uint32(5, v));
-            },
-            None => {},
+        if let Some(v) = self.hmac_key_version {
+            try!(os.write_uint32(5, v));
         };
-        match self.hmac.as_ref() {
-            Some(v) => {
-                try!(os.write_bytes(6, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.hmac.as_ref() {
+            try!(os.write_bytes(6, v.as_slice()));
         };
         try!(os.write_unknown_fields(self.get_unknown_fields()));
         ::std::result::Ok(())
@@ -302,12 +297,32 @@ impl ::protobuf::Message for Header {
         };
         unsafe {
             descriptor.get(|| {
-                let mut fields: ::std::vec::Vec<&'static ::protobuf::reflect::FieldAccessor<Header>> = ::std::vec::Vec::new();
-                fields.push(unsafe { ::std::mem::transmute(&Header_message_length_acc as &'static ::protobuf::reflect::FieldAccessor<Header>) });
-                fields.push(unsafe { ::std::mem::transmute(&Header_hmac_hash_function_acc as &'static ::protobuf::reflect::FieldAccessor<Header>) });
-                fields.push(unsafe { ::std::mem::transmute(&Header_hmac_signer_acc as &'static ::protobuf::reflect::FieldAccessor<Header>) });
-                fields.push(unsafe { ::std::mem::transmute(&Header_hmac_key_version_acc as &'static ::protobuf::reflect::FieldAccessor<Header>) });
-                fields.push(unsafe { ::std::mem::transmute(&Header_hmac_acc as &'static ::protobuf::reflect::FieldAccessor<Header>) });
+                let mut fields = ::std::vec::Vec::new();
+                fields.push(::protobuf::reflect::accessor::make_singular_u32_accessor(
+                    "message_length",
+                    Header::has_message_length,
+                    Header::get_message_length,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_enum_accessor(
+                    "hmac_hash_function",
+                    Header::has_hmac_hash_function,
+                    Header::get_hmac_hash_function,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "hmac_signer",
+                    Header::has_hmac_signer,
+                    Header::get_hmac_signer,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_u32_accessor(
+                    "hmac_key_version",
+                    Header::has_hmac_key_version,
+                    Header::get_hmac_key_version,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_bytes_accessor(
+                    "hmac",
+                    Header::has_hmac,
+                    Header::get_hmac,
+                ));
                 ::protobuf::reflect::MessageDescriptor::new::<Header>(
                     "Header",
                     fields,
@@ -346,100 +361,7 @@ impl ::std::cmp::PartialEq for Header {
 
 impl ::std::fmt::Show for Header {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        use protobuf::{Message};
         self.fmt_impl(f)
-    }
-}
-
-
-#[allow(non_camel_case_types)]
-struct Header_message_length_acc_type;
-static Header_message_length_acc: Header_message_length_acc_type = Header_message_length_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Header> for Header_message_length_acc_type {
-    fn name(&self) -> &'static str {
-        "message_length"
-    }
-
-    fn has_field(&self, m: &Header) -> bool {
-        m.has_message_length()
-    }
-
-    fn get_u32(&self, m: &Header) -> u32 {
-        m.get_message_length()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Header_hmac_hash_function_acc_type;
-static Header_hmac_hash_function_acc: Header_hmac_hash_function_acc_type = Header_hmac_hash_function_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Header> for Header_hmac_hash_function_acc_type {
-    fn name(&self) -> &'static str {
-        "hmac_hash_function"
-    }
-
-    fn has_field(&self, m: &Header) -> bool {
-        m.has_hmac_hash_function()
-    }
-
-    fn get_enum<'a>(&self, m: &Header) -> &'static ::protobuf::reflect::EnumValueDescriptor {
-        use protobuf::{ProtobufEnum};
-        m.get_hmac_hash_function().descriptor()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Header_hmac_signer_acc_type;
-static Header_hmac_signer_acc: Header_hmac_signer_acc_type = Header_hmac_signer_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Header> for Header_hmac_signer_acc_type {
-    fn name(&self) -> &'static str {
-        "hmac_signer"
-    }
-
-    fn has_field(&self, m: &Header) -> bool {
-        m.has_hmac_signer()
-    }
-
-    fn get_str<'a>(&self, m: &'a Header) -> &'a str {
-        m.get_hmac_signer()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Header_hmac_key_version_acc_type;
-static Header_hmac_key_version_acc: Header_hmac_key_version_acc_type = Header_hmac_key_version_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Header> for Header_hmac_key_version_acc_type {
-    fn name(&self) -> &'static str {
-        "hmac_key_version"
-    }
-
-    fn has_field(&self, m: &Header) -> bool {
-        m.has_hmac_key_version()
-    }
-
-    fn get_u32(&self, m: &Header) -> u32 {
-        m.get_hmac_key_version()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Header_hmac_acc_type;
-static Header_hmac_acc: Header_hmac_acc_type = Header_hmac_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Header> for Header_hmac_acc_type {
-    fn name(&self) -> &'static str {
-        "hmac"
-    }
-
-    fn has_field(&self, m: &Header) -> bool {
-        m.has_hmac()
-    }
-
-    fn get_bytes<'a>(&self, m: &'a Header) -> &'a [u8] {
-        m.get_hmac()
     }
 }
 
@@ -449,19 +371,18 @@ pub enum Header_HmacHashFunction {
     SHA1 = 1,
 }
 
-impl Header_HmacHashFunction {
-    pub fn new(value: i32) -> Header_HmacHashFunction {
-        match value {
-            0 => Header_HmacHashFunction::MD5,
-            1 => Header_HmacHashFunction::SHA1,
-            _ => panic!()
-        }
-    }
-}
 
 impl ::protobuf::ProtobufEnum for Header_HmacHashFunction {
     fn value(&self) -> i32 {
         *self as i32
+    }
+
+    fn from_i32(value: i32) -> ::std::option::Option<Header_HmacHashFunction> {
+        match value {
+            0 => ::std::option::Some(Header_HmacHashFunction::MD5),
+            1 => ::std::option::Some(Header_HmacHashFunction::SHA1),
+            _ => ::std::option::None
+        }
     }
 
     fn enum_descriptor_static(_: Option<Header_HmacHashFunction>) -> &'static ::protobuf::reflect::EnumDescriptor {
@@ -491,7 +412,7 @@ pub struct Field {
     cached_size: ::std::cell::Cell<u32>,
 }
 
-impl<'a> Field {
+impl Field {
     pub fn new() -> Field {
         ::std::default::Default::default()
     }
@@ -536,14 +457,19 @@ impl<'a> Field {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_name(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_name<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.name.is_none() {
             self.name.set_default();
         };
         self.name.as_mut().unwrap()
     }
 
-    pub fn get_name(&'a self) -> &'a str {
+    // Take field
+    pub fn take_name(&mut self) -> ::std::string::String {
+        self.name.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_name<'a>(&'a self) -> &'a str {
         match self.name.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -553,7 +479,7 @@ impl<'a> Field {
     // optional .message.Field.ValueType value_type = 2;
 
     pub fn clear_value_type(&mut self) {
-        self.value_type = None;
+        self.value_type = ::std::option::None;
     }
 
     pub fn has_value_type(&self) -> bool {
@@ -562,10 +488,10 @@ impl<'a> Field {
 
     // Param is passed by value, moved
     pub fn set_value_type(&mut self, v: Field_ValueType) {
-        self.value_type = Some(v);
+        self.value_type = ::std::option::Some(v);
     }
 
-    pub fn get_value_type(&self) -> Field_ValueType {
+    pub fn get_value_type<'a>(&self) -> Field_ValueType {
         self.value_type.unwrap_or(Field_ValueType::STRING)
     }
 
@@ -589,14 +515,19 @@ impl<'a> Field {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_representation(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_representation<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.representation.is_none() {
             self.representation.set_default();
         };
         self.representation.as_mut().unwrap()
     }
 
-    pub fn get_representation(&'a self) -> &'a str {
+    // Take field
+    pub fn take_representation(&mut self) -> ::std::string::String {
+        self.representation.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_representation<'a>(&'a self) -> &'a str {
         match self.representation.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -615,11 +546,16 @@ impl<'a> Field {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_value_string(&'a mut self) -> &'a mut ::protobuf::RepeatedField<::std::string::String> {
+    pub fn mut_value_string<'a>(&'a mut self) -> &'a mut ::protobuf::RepeatedField<::std::string::String> {
         &mut self.value_string
     }
 
-    pub fn get_value_string(&'a self) -> &'a [::std::string::String] {
+    // Take field
+    pub fn take_value_string(&mut self) -> ::protobuf::RepeatedField<::std::string::String> {
+        ::std::mem::replace(&mut self.value_string, ::protobuf::RepeatedField::new())
+    }
+
+    pub fn get_value_string<'a>(&'a self) -> &'a [::std::string::String] {
         self.value_string.as_slice()
     }
 
@@ -635,11 +571,16 @@ impl<'a> Field {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_value_bytes(&'a mut self) -> &'a mut ::protobuf::RepeatedField<::std::vec::Vec<u8>> {
+    pub fn mut_value_bytes<'a>(&'a mut self) -> &'a mut ::protobuf::RepeatedField<::std::vec::Vec<u8>> {
         &mut self.value_bytes
     }
 
-    pub fn get_value_bytes(&'a self) -> &'a [::std::vec::Vec<u8>] {
+    // Take field
+    pub fn take_value_bytes(&mut self) -> ::protobuf::RepeatedField<::std::vec::Vec<u8>> {
+        ::std::mem::replace(&mut self.value_bytes, ::protobuf::RepeatedField::new())
+    }
+
+    pub fn get_value_bytes<'a>(&'a self) -> &'a [::std::vec::Vec<u8>] {
         self.value_bytes.as_slice()
     }
 
@@ -655,11 +596,16 @@ impl<'a> Field {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_value_integer(&'a mut self) -> &'a mut ::std::vec::Vec<i64> {
+    pub fn mut_value_integer<'a>(&'a mut self) -> &'a mut ::std::vec::Vec<i64> {
         &mut self.value_integer
     }
 
-    pub fn get_value_integer(&'a self) -> &'a [i64] {
+    // Take field
+    pub fn take_value_integer(&mut self) -> ::std::vec::Vec<i64> {
+        ::std::mem::replace(&mut self.value_integer, ::std::vec::Vec::new())
+    }
+
+    pub fn get_value_integer<'a>(&'a self) -> &'a [i64] {
         self.value_integer.as_slice()
     }
 
@@ -675,11 +621,16 @@ impl<'a> Field {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_value_double(&'a mut self) -> &'a mut ::std::vec::Vec<f64> {
+    pub fn mut_value_double<'a>(&'a mut self) -> &'a mut ::std::vec::Vec<f64> {
         &mut self.value_double
     }
 
-    pub fn get_value_double(&'a self) -> &'a [f64] {
+    // Take field
+    pub fn take_value_double(&mut self) -> ::std::vec::Vec<f64> {
+        ::std::mem::replace(&mut self.value_double, ::std::vec::Vec::new())
+    }
+
+    pub fn get_value_double<'a>(&'a self) -> &'a [f64] {
         self.value_double.as_slice()
     }
 
@@ -695,11 +646,16 @@ impl<'a> Field {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_value_bool(&'a mut self) -> &'a mut ::std::vec::Vec<bool> {
+    pub fn mut_value_bool<'a>(&'a mut self) -> &'a mut ::std::vec::Vec<bool> {
         &mut self.value_bool
     }
 
-    pub fn get_value_bool(&'a self) -> &'a [bool] {
+    // Take field
+    pub fn take_value_bool(&mut self) -> ::std::vec::Vec<bool> {
+        ::std::mem::replace(&mut self.value_bool, ::std::vec::Vec::new())
+    }
+
+    pub fn get_value_bool<'a>(&'a self) -> &'a [bool] {
         self.value_bool.as_slice()
     }
 }
@@ -731,8 +687,8 @@ impl ::protobuf::Message for Field {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
-                    let tmp = Field_ValueType::new(try!(is.read_int32()));
-                    self.value_type = Some(tmp);
+                    let tmp = try!(is.read_enum());
+                    self.value_type = ::std::option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
@@ -756,49 +712,43 @@ impl ::protobuf::Message for Field {
                     try!(is.read_bytes_into(tmp))
                 },
                 6 => {
-                    if wire_type == ::protobuf::wire_format::WireTypeLengthDelimited {
-                        let len = try!(is.read_raw_varint32());
-                        let old_limit = is.push_limit(len);
-                        while !try!(is.eof()) {
+                    match wire_type {
+                        ::protobuf::wire_format::WireTypeLengthDelimited => {
+                            try!(is.read_repeated_packed_int64_into(&mut self.value_integer));
+                        },
+                        ::protobuf::wire_format::WireTypeVarint => {
                             self.value_integer.push(try!(is.read_int64()));
-                        }
-                        is.pop_limit(old_limit);
-                    } else {
-                        if wire_type != ::protobuf::wire_format::WireTypeVarint {
+                        },
+                        _ => {
                             return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                        };
-                        self.value_integer.push(try!(is.read_int64()));
-                    }
+                        },
+                    };
                 },
                 7 => {
-                    if wire_type == ::protobuf::wire_format::WireTypeLengthDelimited {
-                        let len = try!(is.read_raw_varint32());
-                        let old_limit = is.push_limit(len);
-                        while !try!(is.eof()) {
+                    match wire_type {
+                        ::protobuf::wire_format::WireTypeLengthDelimited => {
+                            try!(is.read_repeated_packed_double_into(&mut self.value_double));
+                        },
+                        ::protobuf::wire_format::WireTypeFixed64 => {
                             self.value_double.push(try!(is.read_double()));
-                        }
-                        is.pop_limit(old_limit);
-                    } else {
-                        if wire_type != ::protobuf::wire_format::WireTypeFixed64 {
+                        },
+                        _ => {
                             return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                        };
-                        self.value_double.push(try!(is.read_double()));
-                    }
+                        },
+                    };
                 },
                 8 => {
-                    if wire_type == ::protobuf::wire_format::WireTypeLengthDelimited {
-                        let len = try!(is.read_raw_varint32());
-                        let old_limit = is.push_limit(len);
-                        while !try!(is.eof()) {
+                    match wire_type {
+                        ::protobuf::wire_format::WireTypeLengthDelimited => {
+                            try!(is.read_repeated_packed_bool_into(&mut self.value_bool));
+                        },
+                        ::protobuf::wire_format::WireTypeVarint => {
                             self.value_bool.push(try!(is.read_bool()));
-                        }
-                        is.pop_limit(old_limit);
-                    } else {
-                        if wire_type != ::protobuf::wire_format::WireTypeVarint {
+                        },
+                        _ => {
                             return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                        };
-                        self.value_bool.push(try!(is.read_bool()));
-                    }
+                        },
+                    };
                 },
                 _ => {
                     let unknown = try!(is.read_unknown(wire_type));
@@ -811,7 +761,6 @@ impl ::protobuf::Message for Field {
 
     // Compute sizes of nested messages
     fn compute_size(&self) -> u32 {
-        use protobuf::{Message};
         let mut my_size = 0;
         for value in self.name.iter() {
             my_size += ::protobuf::rt::string_size(1, value.as_slice());
@@ -843,24 +792,14 @@ impl ::protobuf::Message for Field {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
-        use protobuf::{Message};
-        match self.name.as_ref() {
-            Some(v) => {
-                try!(os.write_string(1, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.name.as_ref() {
+            try!(os.write_string(1, v.as_slice()));
         };
-        match self.value_type {
-            Some(v) => {
-                try!(os.write_enum(2, v as i32));
-            },
-            None => {},
+        if let Some(v) = self.value_type {
+            try!(os.write_enum(2, v as i32));
         };
-        match self.representation.as_ref() {
-            Some(v) => {
-                try!(os.write_string(3, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.representation.as_ref() {
+            try!(os.write_string(3, v.as_slice()));
         };
         for v in self.value_string.iter() {
             try!(os.write_string(4, v.as_slice()));
@@ -916,15 +855,42 @@ impl ::protobuf::Message for Field {
         };
         unsafe {
             descriptor.get(|| {
-                let mut fields: ::std::vec::Vec<&'static ::protobuf::reflect::FieldAccessor<Field>> = ::std::vec::Vec::new();
-                fields.push(unsafe { ::std::mem::transmute(&Field_name_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
-                fields.push(unsafe { ::std::mem::transmute(&Field_value_type_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
-                fields.push(unsafe { ::std::mem::transmute(&Field_representation_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
-                fields.push(unsafe { ::std::mem::transmute(&Field_value_string_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
-                fields.push(unsafe { ::std::mem::transmute(&Field_value_bytes_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
-                fields.push(unsafe { ::std::mem::transmute(&Field_value_integer_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
-                fields.push(unsafe { ::std::mem::transmute(&Field_value_double_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
-                fields.push(unsafe { ::std::mem::transmute(&Field_value_bool_acc as &'static ::protobuf::reflect::FieldAccessor<Field>) });
+                let mut fields = ::std::vec::Vec::new();
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "name",
+                    Field::has_name,
+                    Field::get_name,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_enum_accessor(
+                    "value_type",
+                    Field::has_value_type,
+                    Field::get_value_type,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "representation",
+                    Field::has_representation,
+                    Field::get_representation,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_repeated_string_accessor(
+                    "value_string",
+                    Field::get_value_string,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_repeated_bytes_accessor(
+                    "value_bytes",
+                    Field::get_value_bytes,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_repeated_i64_accessor(
+                    "value_integer",
+                    Field::get_value_integer,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_repeated_f64_accessor(
+                    "value_double",
+                    Field::get_value_double,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_repeated_bool_accessor(
+                    "value_bool",
+                    Field::get_value_bool,
+                ));
                 ::protobuf::reflect::MessageDescriptor::new::<Field>(
                     "Field",
                     fields,
@@ -969,154 +935,7 @@ impl ::std::cmp::PartialEq for Field {
 
 impl ::std::fmt::Show for Field {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        use protobuf::{Message};
         self.fmt_impl(f)
-    }
-}
-
-
-#[allow(non_camel_case_types)]
-struct Field_name_acc_type;
-static Field_name_acc: Field_name_acc_type = Field_name_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_name_acc_type {
-    fn name(&self) -> &'static str {
-        "name"
-    }
-
-    fn has_field(&self, m: &Field) -> bool {
-        m.has_name()
-    }
-
-    fn get_str<'a>(&self, m: &'a Field) -> &'a str {
-        m.get_name()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Field_value_type_acc_type;
-static Field_value_type_acc: Field_value_type_acc_type = Field_value_type_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_value_type_acc_type {
-    fn name(&self) -> &'static str {
-        "value_type"
-    }
-
-    fn has_field(&self, m: &Field) -> bool {
-        m.has_value_type()
-    }
-
-    fn get_enum<'a>(&self, m: &Field) -> &'static ::protobuf::reflect::EnumValueDescriptor {
-        use protobuf::{ProtobufEnum};
-        m.get_value_type().descriptor()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Field_representation_acc_type;
-static Field_representation_acc: Field_representation_acc_type = Field_representation_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_representation_acc_type {
-    fn name(&self) -> &'static str {
-        "representation"
-    }
-
-    fn has_field(&self, m: &Field) -> bool {
-        m.has_representation()
-    }
-
-    fn get_str<'a>(&self, m: &'a Field) -> &'a str {
-        m.get_representation()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Field_value_string_acc_type;
-static Field_value_string_acc: Field_value_string_acc_type = Field_value_string_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_value_string_acc_type {
-    fn name(&self) -> &'static str {
-        "value_string"
-    }
-
-    fn len_field(&self, m: &Field) -> uint {
-        m.get_value_string().len()
-    }
-
-    fn get_rep_str<'a>(&self, m: &'a Field) -> &'a [::std::string::String] {
-        m.get_value_string()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Field_value_bytes_acc_type;
-static Field_value_bytes_acc: Field_value_bytes_acc_type = Field_value_bytes_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_value_bytes_acc_type {
-    fn name(&self) -> &'static str {
-        "value_bytes"
-    }
-
-    fn len_field(&self, m: &Field) -> uint {
-        m.get_value_bytes().len()
-    }
-
-    fn get_rep_bytes<'a>(&self, m: &'a Field) -> &'a [::std::vec::Vec<u8>] {
-        m.get_value_bytes()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Field_value_integer_acc_type;
-static Field_value_integer_acc: Field_value_integer_acc_type = Field_value_integer_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_value_integer_acc_type {
-    fn name(&self) -> &'static str {
-        "value_integer"
-    }
-
-    fn len_field(&self, m: &Field) -> uint {
-        m.get_value_integer().len()
-    }
-
-    fn get_rep_i64<'a>(&self, m: &'a Field) -> &'a [i64] {
-        m.get_value_integer()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Field_value_double_acc_type;
-static Field_value_double_acc: Field_value_double_acc_type = Field_value_double_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_value_double_acc_type {
-    fn name(&self) -> &'static str {
-        "value_double"
-    }
-
-    fn len_field(&self, m: &Field) -> uint {
-        m.get_value_double().len()
-    }
-
-    fn get_rep_f64<'a>(&self, m: &'a Field) -> &'a [f64] {
-        m.get_value_double()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct Field_value_bool_acc_type;
-static Field_value_bool_acc: Field_value_bool_acc_type = Field_value_bool_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<Field> for Field_value_bool_acc_type {
-    fn name(&self) -> &'static str {
-        "value_bool"
-    }
-
-    fn len_field(&self, m: &Field) -> uint {
-        m.get_value_bool().len()
-    }
-
-    fn get_rep_bool<'a>(&self, m: &'a Field) -> &'a [bool] {
-        m.get_value_bool()
     }
 }
 
@@ -1129,22 +948,21 @@ pub enum Field_ValueType {
     BOOL = 4,
 }
 
-impl Field_ValueType {
-    pub fn new(value: i32) -> Field_ValueType {
-        match value {
-            0 => Field_ValueType::STRING,
-            1 => Field_ValueType::BYTES,
-            2 => Field_ValueType::INTEGER,
-            3 => Field_ValueType::DOUBLE,
-            4 => Field_ValueType::BOOL,
-            _ => panic!()
-        }
-    }
-}
 
 impl ::protobuf::ProtobufEnum for Field_ValueType {
     fn value(&self) -> i32 {
         *self as i32
+    }
+
+    fn from_i32(value: i32) -> ::std::option::Option<Field_ValueType> {
+        match value {
+            0 => ::std::option::Some(Field_ValueType::STRING),
+            1 => ::std::option::Some(Field_ValueType::BYTES),
+            2 => ::std::option::Some(Field_ValueType::INTEGER),
+            3 => ::std::option::Some(Field_ValueType::DOUBLE),
+            4 => ::std::option::Some(Field_ValueType::BOOL),
+            _ => ::std::option::None
+        }
     }
 
     fn enum_descriptor_static(_: Option<Field_ValueType>) -> &'static ::protobuf::reflect::EnumDescriptor {
@@ -1176,7 +994,7 @@ pub struct HekaMessage {
     cached_size: ::std::cell::Cell<u32>,
 }
 
-impl<'a> HekaMessage {
+impl HekaMessage {
     pub fn new() -> HekaMessage {
         ::std::default::Default::default()
     }
@@ -1223,14 +1041,19 @@ impl<'a> HekaMessage {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_uuid(&'a mut self) -> &'a mut ::std::vec::Vec<u8> {
+    pub fn mut_uuid<'a>(&'a mut self) -> &'a mut ::std::vec::Vec<u8> {
         if self.uuid.is_none() {
             self.uuid.set_default();
         };
         self.uuid.as_mut().unwrap()
     }
 
-    pub fn get_uuid(&'a self) -> &'a [u8] {
+    // Take field
+    pub fn take_uuid(&mut self) -> ::std::vec::Vec<u8> {
+        self.uuid.take().unwrap_or_else(|| ::std::vec::Vec::new())
+    }
+
+    pub fn get_uuid<'a>(&'a self) -> &'a [u8] {
         match self.uuid.as_ref() {
             Some(v) => v.as_slice(),
             None => [].as_slice(),
@@ -1240,7 +1063,7 @@ impl<'a> HekaMessage {
     // required int64 timestamp = 2;
 
     pub fn clear_timestamp(&mut self) {
-        self.timestamp = None;
+        self.timestamp = ::std::option::None;
     }
 
     pub fn has_timestamp(&self) -> bool {
@@ -1249,10 +1072,10 @@ impl<'a> HekaMessage {
 
     // Param is passed by value, moved
     pub fn set_timestamp(&mut self, v: i64) {
-        self.timestamp = Some(v);
+        self.timestamp = ::std::option::Some(v);
     }
 
-    pub fn get_timestamp(&self) -> i64 {
+    pub fn get_timestamp<'a>(&self) -> i64 {
         self.timestamp.unwrap_or(0)
     }
 
@@ -1273,14 +1096,19 @@ impl<'a> HekaMessage {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_field_type(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_field_type<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.field_type.is_none() {
             self.field_type.set_default();
         };
         self.field_type.as_mut().unwrap()
     }
 
-    pub fn get_field_type(&'a self) -> &'a str {
+    // Take field
+    pub fn take_field_type(&mut self) -> ::std::string::String {
+        self.field_type.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_field_type<'a>(&'a self) -> &'a str {
         match self.field_type.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -1304,14 +1132,19 @@ impl<'a> HekaMessage {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_logger(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_logger<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.logger.is_none() {
             self.logger.set_default();
         };
         self.logger.as_mut().unwrap()
     }
 
-    pub fn get_logger(&'a self) -> &'a str {
+    // Take field
+    pub fn take_logger(&mut self) -> ::std::string::String {
+        self.logger.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_logger<'a>(&'a self) -> &'a str {
         match self.logger.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -1321,7 +1154,7 @@ impl<'a> HekaMessage {
     // optional int32 severity = 5;
 
     pub fn clear_severity(&mut self) {
-        self.severity = None;
+        self.severity = ::std::option::None;
     }
 
     pub fn has_severity(&self) -> bool {
@@ -1330,10 +1163,10 @@ impl<'a> HekaMessage {
 
     // Param is passed by value, moved
     pub fn set_severity(&mut self, v: i32) {
-        self.severity = Some(v);
+        self.severity = ::std::option::Some(v);
     }
 
-    pub fn get_severity(&self) -> i32 {
+    pub fn get_severity<'a>(&self) -> i32 {
         self.severity.unwrap_or(7i32)
     }
 
@@ -1354,14 +1187,19 @@ impl<'a> HekaMessage {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_payload(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_payload<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.payload.is_none() {
             self.payload.set_default();
         };
         self.payload.as_mut().unwrap()
     }
 
-    pub fn get_payload(&'a self) -> &'a str {
+    // Take field
+    pub fn take_payload(&mut self) -> ::std::string::String {
+        self.payload.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_payload<'a>(&'a self) -> &'a str {
         match self.payload.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -1385,14 +1223,19 @@ impl<'a> HekaMessage {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_env_version(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_env_version<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.env_version.is_none() {
             self.env_version.set_default();
         };
         self.env_version.as_mut().unwrap()
     }
 
-    pub fn get_env_version(&'a self) -> &'a str {
+    // Take field
+    pub fn take_env_version(&mut self) -> ::std::string::String {
+        self.env_version.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_env_version<'a>(&'a self) -> &'a str {
         match self.env_version.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -1402,7 +1245,7 @@ impl<'a> HekaMessage {
     // optional int32 pid = 8;
 
     pub fn clear_pid(&mut self) {
-        self.pid = None;
+        self.pid = ::std::option::None;
     }
 
     pub fn has_pid(&self) -> bool {
@@ -1411,10 +1254,10 @@ impl<'a> HekaMessage {
 
     // Param is passed by value, moved
     pub fn set_pid(&mut self, v: i32) {
-        self.pid = Some(v);
+        self.pid = ::std::option::Some(v);
     }
 
-    pub fn get_pid(&self) -> i32 {
+    pub fn get_pid<'a>(&self) -> i32 {
         self.pid.unwrap_or(0)
     }
 
@@ -1435,14 +1278,19 @@ impl<'a> HekaMessage {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_hostname(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_hostname<'a>(&'a mut self) -> &'a mut ::std::string::String {
         if self.hostname.is_none() {
             self.hostname.set_default();
         };
         self.hostname.as_mut().unwrap()
     }
 
-    pub fn get_hostname(&'a self) -> &'a str {
+    // Take field
+    pub fn take_hostname(&mut self) -> ::std::string::String {
+        self.hostname.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    pub fn get_hostname<'a>(&'a self) -> &'a str {
         match self.hostname.as_ref() {
             Some(v) => v.as_slice(),
             None => "",
@@ -1461,11 +1309,16 @@ impl<'a> HekaMessage {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_fields(&'a mut self) -> &'a mut ::protobuf::RepeatedField<Field> {
+    pub fn mut_fields<'a>(&'a mut self) -> &'a mut ::protobuf::RepeatedField<Field> {
         &mut self.fields
     }
 
-    pub fn get_fields(&'a self) -> &'a [Field] {
+    // Take field
+    pub fn take_fields(&mut self) -> ::protobuf::RepeatedField<Field> {
+        ::std::mem::replace(&mut self.fields, ::protobuf::RepeatedField::new())
+    }
+
+    pub fn get_fields<'a>(&'a self) -> &'a [Field] {
         self.fields.as_slice()
     }
 }
@@ -1501,7 +1354,7 @@ impl ::protobuf::Message for HekaMessage {
                         return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_int64());
-                    self.timestamp = Some(tmp);
+                    self.timestamp = ::std::option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
@@ -1522,7 +1375,7 @@ impl ::protobuf::Message for HekaMessage {
                         return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_int32());
-                    self.severity = Some(tmp);
+                    self.severity = ::std::option::Some(tmp);
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
@@ -1543,7 +1396,7 @@ impl ::protobuf::Message for HekaMessage {
                         return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_int32());
-                    self.pid = Some(tmp);
+                    self.pid = ::std::option::Some(tmp);
                 },
                 9 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
@@ -1570,7 +1423,6 @@ impl ::protobuf::Message for HekaMessage {
 
     // Compute sizes of nested messages
     fn compute_size(&self) -> u32 {
-        use protobuf::{Message};
         let mut my_size = 0;
         for value in self.uuid.iter() {
             my_size += ::protobuf::rt::bytes_size(1, value.as_slice());
@@ -1609,60 +1461,32 @@ impl ::protobuf::Message for HekaMessage {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
-        use protobuf::{Message};
-        match self.uuid.as_ref() {
-            Some(v) => {
-                try!(os.write_bytes(1, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.uuid.as_ref() {
+            try!(os.write_bytes(1, v.as_slice()));
         };
-        match self.timestamp {
-            Some(v) => {
-                try!(os.write_int64(2, v));
-            },
-            None => {},
+        if let Some(v) = self.timestamp {
+            try!(os.write_int64(2, v));
         };
-        match self.field_type.as_ref() {
-            Some(v) => {
-                try!(os.write_string(3, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.field_type.as_ref() {
+            try!(os.write_string(3, v.as_slice()));
         };
-        match self.logger.as_ref() {
-            Some(v) => {
-                try!(os.write_string(4, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.logger.as_ref() {
+            try!(os.write_string(4, v.as_slice()));
         };
-        match self.severity {
-            Some(v) => {
-                try!(os.write_int32(5, v));
-            },
-            None => {},
+        if let Some(v) = self.severity {
+            try!(os.write_int32(5, v));
         };
-        match self.payload.as_ref() {
-            Some(v) => {
-                try!(os.write_string(6, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.payload.as_ref() {
+            try!(os.write_string(6, v.as_slice()));
         };
-        match self.env_version.as_ref() {
-            Some(v) => {
-                try!(os.write_string(7, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.env_version.as_ref() {
+            try!(os.write_string(7, v.as_slice()));
         };
-        match self.pid {
-            Some(v) => {
-                try!(os.write_int32(8, v));
-            },
-            None => {},
+        if let Some(v) = self.pid {
+            try!(os.write_int32(8, v));
         };
-        match self.hostname.as_ref() {
-            Some(v) => {
-                try!(os.write_string(9, v.as_slice()));
-            },
-            None => {},
+        if let Some(v) = self.hostname.as_ref() {
+            try!(os.write_string(9, v.as_slice()));
         };
         for v in self.fields.iter() {
             try!(os.write_tag(10, ::protobuf::wire_format::WireTypeLengthDelimited));
@@ -1693,17 +1517,56 @@ impl ::protobuf::Message for HekaMessage {
         };
         unsafe {
             descriptor.get(|| {
-                let mut fields: ::std::vec::Vec<&'static ::protobuf::reflect::FieldAccessor<HekaMessage>> = ::std::vec::Vec::new();
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_uuid_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_timestamp_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_field_type_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_logger_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_severity_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_payload_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_env_version_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_pid_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_hostname_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
-                fields.push(unsafe { ::std::mem::transmute(&HekaMessage_fields_acc as &'static ::protobuf::reflect::FieldAccessor<HekaMessage>) });
+                let mut fields = ::std::vec::Vec::new();
+                fields.push(::protobuf::reflect::accessor::make_singular_bytes_accessor(
+                    "uuid",
+                    HekaMessage::has_uuid,
+                    HekaMessage::get_uuid,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_i64_accessor(
+                    "timestamp",
+                    HekaMessage::has_timestamp,
+                    HekaMessage::get_timestamp,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "field_type",
+                    HekaMessage::has_field_type,
+                    HekaMessage::get_field_type,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "logger",
+                    HekaMessage::has_logger,
+                    HekaMessage::get_logger,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_i32_accessor(
+                    "severity",
+                    HekaMessage::has_severity,
+                    HekaMessage::get_severity,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "payload",
+                    HekaMessage::has_payload,
+                    HekaMessage::get_payload,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "env_version",
+                    HekaMessage::has_env_version,
+                    HekaMessage::get_env_version,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_i32_accessor(
+                    "pid",
+                    HekaMessage::has_pid,
+                    HekaMessage::get_pid,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_string_accessor(
+                    "hostname",
+                    HekaMessage::has_hostname,
+                    HekaMessage::get_hostname,
+                ));
+                fields.push(::protobuf::reflect::accessor::make_repeated_message_accessor(
+                    "fields",
+                    HekaMessage::get_fields,
+                ));
                 ::protobuf::reflect::MessageDescriptor::new::<HekaMessage>(
                     "HekaMessage",
                     fields,
@@ -1752,189 +1615,7 @@ impl ::std::cmp::PartialEq for HekaMessage {
 
 impl ::std::fmt::Show for HekaMessage {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        use protobuf::{Message};
         self.fmt_impl(f)
-    }
-}
-
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_uuid_acc_type;
-static HekaMessage_uuid_acc: HekaMessage_uuid_acc_type = HekaMessage_uuid_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_uuid_acc_type {
-    fn name(&self) -> &'static str {
-        "uuid"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_uuid()
-    }
-
-    fn get_bytes<'a>(&self, m: &'a HekaMessage) -> &'a [u8] {
-        m.get_uuid()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_timestamp_acc_type;
-static HekaMessage_timestamp_acc: HekaMessage_timestamp_acc_type = HekaMessage_timestamp_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_timestamp_acc_type {
-    fn name(&self) -> &'static str {
-        "timestamp"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_timestamp()
-    }
-
-    fn get_i64(&self, m: &HekaMessage) -> i64 {
-        m.get_timestamp()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_field_type_acc_type;
-static HekaMessage_field_type_acc: HekaMessage_field_type_acc_type = HekaMessage_field_type_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_field_type_acc_type {
-    fn name(&self) -> &'static str {
-        "field_type"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_field_type()
-    }
-
-    fn get_str<'a>(&self, m: &'a HekaMessage) -> &'a str {
-        m.get_field_type()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_logger_acc_type;
-static HekaMessage_logger_acc: HekaMessage_logger_acc_type = HekaMessage_logger_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_logger_acc_type {
-    fn name(&self) -> &'static str {
-        "logger"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_logger()
-    }
-
-    fn get_str<'a>(&self, m: &'a HekaMessage) -> &'a str {
-        m.get_logger()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_severity_acc_type;
-static HekaMessage_severity_acc: HekaMessage_severity_acc_type = HekaMessage_severity_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_severity_acc_type {
-    fn name(&self) -> &'static str {
-        "severity"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_severity()
-    }
-
-    fn get_i32(&self, m: &HekaMessage) -> i32 {
-        m.get_severity()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_payload_acc_type;
-static HekaMessage_payload_acc: HekaMessage_payload_acc_type = HekaMessage_payload_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_payload_acc_type {
-    fn name(&self) -> &'static str {
-        "payload"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_payload()
-    }
-
-    fn get_str<'a>(&self, m: &'a HekaMessage) -> &'a str {
-        m.get_payload()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_env_version_acc_type;
-static HekaMessage_env_version_acc: HekaMessage_env_version_acc_type = HekaMessage_env_version_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_env_version_acc_type {
-    fn name(&self) -> &'static str {
-        "env_version"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_env_version()
-    }
-
-    fn get_str<'a>(&self, m: &'a HekaMessage) -> &'a str {
-        m.get_env_version()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_pid_acc_type;
-static HekaMessage_pid_acc: HekaMessage_pid_acc_type = HekaMessage_pid_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_pid_acc_type {
-    fn name(&self) -> &'static str {
-        "pid"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_pid()
-    }
-
-    fn get_i32(&self, m: &HekaMessage) -> i32 {
-        m.get_pid()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_hostname_acc_type;
-static HekaMessage_hostname_acc: HekaMessage_hostname_acc_type = HekaMessage_hostname_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_hostname_acc_type {
-    fn name(&self) -> &'static str {
-        "hostname"
-    }
-
-    fn has_field(&self, m: &HekaMessage) -> bool {
-        m.has_hostname()
-    }
-
-    fn get_str<'a>(&self, m: &'a HekaMessage) -> &'a str {
-        m.get_hostname()
-    }
-}
-
-#[allow(non_camel_case_types)]
-struct HekaMessage_fields_acc_type;
-static HekaMessage_fields_acc: HekaMessage_fields_acc_type = HekaMessage_fields_acc_type;
-
-impl ::protobuf::reflect::FieldAccessor<HekaMessage> for HekaMessage_fields_acc_type {
-    fn name(&self) -> &'static str {
-        "fields"
-    }
-
-    fn len_field(&self, m: &HekaMessage) -> uint {
-        m.get_fields().len()
-    }
-
-    fn get_rep_message_item<'a>(&self, m: &'a HekaMessage, index: uint) -> &'a ::protobuf::Message {
-        &m.get_fields()[index] as &'a ::protobuf::Message
     }
 }
 

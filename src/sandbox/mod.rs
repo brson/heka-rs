@@ -169,7 +169,7 @@ impl<'a> LuaSandbox<'a> {
             });
             self.lsb = std::ptr::null_mut();
             if c != std::ptr::null_mut() {
-                return std::string::raw::from_buf(c as *const u8);
+                return String::from_raw_buf(c as *const u8);
             } else {
                 return String::new();
             }
@@ -183,7 +183,7 @@ impl<'a> LuaSandbox<'a> {
             }
             let c = lsb_get_error(self.lsb);
             if c != std::ptr::null() {
-                return std::string::raw::from_buf(c as *const u8);
+                return String::from_raw_buf(c as *const u8);
             } else {
                 return String::new();
             }
@@ -233,7 +233,7 @@ impl<'a> LuaSandbox<'a> {
             self.field_iterator = 0;
             if lua_pcall(lua, 0, 1, 0) != 0 {
                 let c = lua_tolstring(lua, -1, std::ptr::null_mut());
-                let err = format!("{}() {}", func_name, std::string::raw::from_buf(c as *const u8));
+                let err = format!("{}() {}", func_name, String::from_raw_buf(c as *const u8));
                 err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
                 return (1, self.msg.take().unwrap());
             }
@@ -274,7 +274,7 @@ impl<'a> LuaSandbox<'a> {
             lua_pushnumber(lua, ns as f64);
             if lua_pcall(lua, 1, 0, 0) != 0 {
                 let c = lua_tolstring(lua, -1, std::ptr::null_mut());
-                let err = format!("{}() {}", func_name,  std::string::raw::from_buf(c as *const u8));
+                let err = format!("{}() {}", func_name,  String::from_raw_buf(c as *const u8));
                 err.with_c_str(|e| {lsb_terminate(self.lsb, e);});
                 return 1;
             }
@@ -383,12 +383,12 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
         if top > 0 {
             let c = luaL_checklstring(lua, 1, &mut len);
             if len > 0 {
-                typ = std::string::raw::from_buf(c as *const u8);
+                typ = String::from_raw_buf(c as *const u8);
             }
         }
         if top > 1 {
             let c = luaL_checklstring(lua, 2, std::ptr::null_mut());
-            name = std::string::raw::from_buf(c as *const u8);
+            name = String::from_raw_buf(c as *const u8);
         }
         if top > 2 {
             lsb_output(lsb, 3, top, 1);
@@ -398,7 +398,7 @@ extern fn inject_payload(lua: *mut LUA) -> c_int {
             let sandbox = lsb_get_parent(lsb) as *mut LuaSandbox;
             assert!(!sandbox.is_null());
             let r = match (*sandbox).inject_payload {
-                Some(ref f) => 0, // todo f(name, typ, std::string::raw::from_buf_len(c as *const u8, len as uint)),
+                Some(ref f) => 0, // todo f(name, typ, String::from_raw_buf_len(c as *const u8, len as uint)),
                 None => 0 as c_int,
             };
             if 0 != r {
@@ -680,7 +680,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
             if ai <= l {
                 unsafe {
                     let c: *const c_char = lua_tolstring(lua, varg, &mut len);
-                    let v = std::string::raw::from_buf_len(c as *const u8, len as uint); // allow embedded nulls
+                    let v = String::from_raw_buf_len(c as *const u8, len as uint); // allow embedded nulls
                     if ai == l {
                         a.push(v);
                     } else {
@@ -698,7 +698,7 @@ fn update_field(lua: *mut LUA, varg: c_int, field: &mut pb::Field, ai: uint) {
             if ai <= l {
                 unsafe {
                     let c: *const c_char = lua_tolstring(lua, varg, &mut len);
-                    let v = std::vec::raw::from_buf(c as *const u8, len as uint);
+                    let v = Vec::from_raw_buf(c as *const u8, len as uint);
                     if ai == l {
                         a.push(v);
                     } else {
@@ -785,38 +785,38 @@ extern fn write_message(lua: *mut LUA) -> c_int {
         }
         let msg: &mut Box<pb::HekaMessage> = (*sandbox).msg.as_mut().unwrap();
         let msg: &mut pb::HekaMessage = &mut **msg;
-        let field = std::string::raw::from_buf(name as *const u8);
+        let field = String::from_raw_buf(name as *const u8);
 
         match field.as_slice() {
             "Type" => {
                 argcheck(lua, t == 4, 2, "'Type' must be a string");
                 let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
-                msg.set_field_type(std::string::raw::from_buf(v as *const u8));
+                msg.set_field_type(String::from_raw_buf(v as *const u8));
             }
             "Logger" => {
                 argcheck(lua, t == 4, 2, "'Logger' must be a string");
                 let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
-                msg.set_logger(std::string::raw::from_buf(v as *const u8));
+                msg.set_logger(String::from_raw_buf(v as *const u8));
             }
             "Payload" => {
                 argcheck(lua, t == 4, 2, "'Payload' must be a string");
                 let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
-                msg.set_payload(std::string::raw::from_buf(v as *const u8));
+                msg.set_payload(String::from_raw_buf(v as *const u8));
             }
             "EnvVersion" => {
                 argcheck(lua, t == 4, 2, "'EnvVersion' must be a string");
                 let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
-                msg.set_env_version(std::string::raw::from_buf(v as *const u8));
+                msg.set_env_version(String::from_raw_buf(v as *const u8));
             }
             "Hostname" => {
                 argcheck(lua, t == 4, 2, "'Hostname' must be a string");
                 let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
-                msg.set_hostname(std::string::raw::from_buf(v as *const u8));
+                msg.set_hostname(String::from_raw_buf(v as *const u8));
             }
             "Uuid" => {
                 argcheck(lua, t == 4, 2, "'Uuid' must be a string");
                 let v: *const c_char = lua_tolstring(lua, 2, std::ptr::null_mut());
-                let u = match Uuid::parse_str(std::string::raw::from_buf(v as *const u8).as_slice()) {
+                let u = match Uuid::parse_str(String::from_raw_buf(v as *const u8).as_slice()) {
                     Ok(u) => u,
                     Err(_) => {
                         argcheck(lua, false, 2, "'Uuid' invalid string");
@@ -848,7 +848,7 @@ extern fn write_message(lua: *mut LUA) -> c_int {
                 {
                     Some(name) => {
                         let mut nf:  Option<pb::Field> = None; // todo Brian better way to allow the.mut_fields().push() in None?
-                        let r = std::string::raw::from_buf(r as *const u8);
+                        let r = String::from_raw_buf(r as *const u8);
                         match find_field_mut(msg, name, fi as uint)
                         {
                             (Some(f), _) => {

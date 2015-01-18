@@ -1,8 +1,8 @@
 pub mod pb; // add generated file to the project
 pub mod matcher;
 
-pub fn find_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint) -> Option<&'a pb::Field> {
-    let mut cnt = 0u;
+pub fn find_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: usize) -> Option<&'a pb::Field> {
+    let mut cnt = 0us;
     for value in msg.get_fields().iter() {
         if name == value.get_name() {
             if cnt == fi {
@@ -14,8 +14,8 @@ pub fn find_field<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint) -> Option<
     None
 }
 
-pub fn get_field_string<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint) -> Option<&'a String> {
-    match find_field(msg, name, fi as uint)
+pub fn get_field_string<'a>(msg: &'a pb::HekaMessage, name: &str, fi: usize, ai: usize) -> Option<&'a String> {
+    match find_field(msg, name, fi as usize)
     {
         Some(f) => {
             let a = f.get_value_string();
@@ -30,8 +30,8 @@ pub fn get_field_string<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: 
     }
 }
 
-pub fn get_field_bool<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint) -> Option<bool> {
-    match find_field(msg, name, fi as uint)
+pub fn get_field_bool<'a>(msg: &'a pb::HekaMessage, name: &str, fi: usize, ai: usize) -> Option<bool> {
+    match find_field(msg, name, fi as usize)
     {
         Some(f) => {
             let a = f.get_value_bool();
@@ -46,8 +46,8 @@ pub fn get_field_bool<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: ui
     }
 }
 
-pub fn get_field_number<'a>(msg: &'a pb::HekaMessage, name: &str, fi: uint, ai: uint) -> Option<f64> {
-    match find_field(msg, name, fi as uint)
+pub fn get_field_number<'a>(msg: &'a pb::HekaMessage, name: &str, fi: usize, ai: usize) -> Option<f64> {
+    match find_field(msg, name, fi as usize)
     {
         Some(f) => {
             match f.get_value_type() {

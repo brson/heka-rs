@@ -1,11 +1,12 @@
+#![allow(unstable)]
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
-#![feature(phase)]
+#![feature(plugin)]
 
 extern crate libc;
 extern crate protobuf;
 extern crate regex;
-#[phase(plugin)]
+#[plugin]
 extern crate regex_macros;
 extern crate uuid;
 

@@ -17,11 +17,13 @@ enum Value {
     Nil,
 }
 
+#[derive(Copy)]
 enum ExpectNode {
     Conditional,
     LogicalOperator,
 }
 
+#[derive(Copy)]
 enum Op {
     Equal,
     NotEqual,
@@ -44,8 +46,8 @@ struct Node {
     variable: String,
     op: Op,
     is_field: bool,
-    fi: uint,
-    ai: uint,
+    fi: usize,
+    ai: usize,
     value: Value,
     left: Option<Box<Node>>,
     right: Option<Box<Node>>,
@@ -61,14 +63,14 @@ pub struct Matcher {
 }
 
 pub struct Error {
-    pub pos: uint,
+    pub pos: usize,
     pub msg: String,
 }
 
 impl Node {
     pub fn new() -> Node {
         Node {
-            variable: "".into_string(),
+            variable: "".to_string(),
             op: Equal,
             is_field: false,
             fi: 0,
@@ -83,17 +85,17 @@ impl Node {
 impl Matcher {
     pub fn new(s: &str) -> Result<Matcher, Error> {
         let mut m = Matcher {
-            spec: s.into_string(),
+            spec: s.to_string(),
             expect: Conditional,
-            node: box Node::new(),
-            msg: "Failed Parsing".into_string(),
+            node: Box::new(Node::new()),
+            msg: "Failed Parsing".to_string(),
             stack: DList::new(),
             output: DList::new(),
         };
 
         let b = s.as_bytes();
         let l = b.len();
-        let mut pos = 0u;
+        let mut pos = 0us;
 
         loop {
             if pos >= l {
@@ -115,7 +117,7 @@ impl Matcher {
                 }
                 ' ' => {pos += 1;} // discard spaces
                 '&' | '|' => {
-                    if m.expect as int != LogicalOperator as int || !m.match_logical_op(s.slice_from(pos), &mut pos) {
+                    if m.expect as isize != LogicalOperator as isize || !m.match_logical_op(s.slice_from(pos), &mut pos) {
                         return Err(Error{pos: pos, msg: m.msg});
                     }
                     if !m.pop_lower_precedence_ops() {
@@ -125,14 +127,14 @@ impl Matcher {
                     m.expect = Conditional;
                 }
                 _ => {
-                    if m.expect as int != Conditional as int || !m.match_condition(s.slice_from(pos), &mut pos) {
+                    if m.expect as isize != Conditional as isize || !m.match_condition(s.slice_from(pos), &mut pos) {
                         return Err(Error{pos: pos, msg: m.msg});
                     }
                     m.output.push_back(m.node);
                     m.expect = LogicalOperator;
                 }
             }
-            m.node = box Node::new();
+            m.node = Box::new(Node::new());
         }
 
         if m.pop_remaining_ops() && m.output.len() == 1 {
@@ -163,7 +165,7 @@ impl Matcher {
 
     fn pop_to_matching_paren(&mut self) -> bool {
          let mut matched = false;
-         let mut count = 0u;
+         let mut count = 0us;
          loop {
              match self.stack.pop_front() {
                  Some(n) => {
@@ -182,11 +184,11 @@ impl Matcher {
              }
          }
          if !matched {
-             self.msg = "mis-matched parens".into_string();
+             self.msg = "mis-matched parens".to_string();
              return false;
          }
          if count == 0 {
-             self.msg = "empty parens".into_string();
+             self.msg = "empty parens".to_string();
              return false;
          }
          true
@@ -196,7 +198,7 @@ impl Matcher {
         loop {
             match self.stack.pop_front() {
                 Some(n) => {
-                    if n.op as int != OpenParen as int && self.node.op as int <= n.op as int {
+                    if n.op as isize != OpenParen as isize && self.node.op as isize <= n.op as isize {
                         self.push_op(n);
                     } else {
                         self.stack.push_front(n); // todo fix removing it, just to add it back on in this case
@@ -213,10 +215,10 @@ impl Matcher {
         loop {
             match self.stack.pop_front() {
                 Some(n) => {
-                    if n.op as int != OpenParen as int {
+                    if n.op as isize != OpenParen as isize {
                         self.push_op(n);
                     } else {
-                        self.msg = "missing closing paren".into_string();
+                        self.msg = "missing closing paren".to_string();
                         return false;
                     }
                 }
@@ -226,11 +228,11 @@ impl Matcher {
         true
     }
 
-    fn match_op(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_op(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!(r"^\s*(==|!=|>=|>|<=|<)\s*");
         match re.captures(s) {
             Some(c) => {
-                self.node.op = match c.at(1) {
+                self.node.op = match c.at(1).unwrap() {
                     "==" => Equal,
                     "!=" => NotEqual,
                     ">=" => GtEqual,
@@ -247,11 +249,11 @@ impl Matcher {
         }
     }
 
-    fn match_re_op(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_re_op(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!(r"^\s*(=~|!~)\s*");
         match re.captures(s) {
             Some(c) => {
-                self.node.op = match c.at(1) {
+                self.node.op = match c.at(1).unwrap() {
                     "=~" => ReEqual,
                     "!~" => ReNotEqual,
                     _ => return false
@@ -264,11 +266,11 @@ impl Matcher {
         }
     }
 
-    fn match_logical_op(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_logical_op(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!(r"^(&&|\|\|)");
         match re.captures(s) {
             Some(c) => {
-                self.node.op = match c.at(1) {
+                self.node.op = match c.at(1).unwrap() {
                     "&&" => And,
                     "||" => Or,
                     _ => return false
@@ -281,7 +283,7 @@ impl Matcher {
         }
     }
 
-    fn match_string_value(&mut self, s: &str, pos: &mut uint, allow_nil: bool) -> bool {
+    fn match_string_value(&mut self, s: &str, pos: &mut usize, allow_nil: bool) -> bool {
         let mut re = regex!(r#"('(?:\\'|[^'])*'|"(?:\\"|[^"])*")"#);
         if allow_nil {
             re = regex!(r#"(NIL|'(?:\\'|[^'])*'|"(?:\\"|[^"])*")"#);
@@ -289,9 +291,9 @@ impl Matcher {
 
         match re.captures(s) {
             Some(c) => {
-                self.node.value = match c.at(1) {
+                self.node.value = match c.at(1).unwrap() {
                     "NIL" => Nil,
-                    t => Text(t.slice(1, t.len()-1).into_string())
+                    t => Text(t.slice(1, t.len()-1).to_string())
                 };
                 let (_, e) = c.pos(0).unwrap();
                 *pos += e;
@@ -301,13 +303,13 @@ impl Matcher {
         }
     }
 
-    fn match_re_value(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_re_value(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!(r"^/((?:\\/|[^/])*)/");
         match re.captures(s) {
             Some(c) => {
                 let (_, e) = c.pos(0).unwrap();
                 *pos += e;
-                self.node.value = match Regex::new(c.at(1)) {
+                self.node.value = match Regex::new(c.at(1).unwrap()) {
                     Ok(re) => Re(re),
                     Err(err) => {
                         self.msg = err.msg;
@@ -320,11 +322,11 @@ impl Matcher {
         }
     }
 
-    fn match_integer_value(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_integer_value(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!(r"^(\d+)");
         match re.captures(s) {
             Some(c) => {
-                self.node.value = Number(std::str::from_str::<f64>(c.at(1)).unwrap());
+                self.node.value = Number(std::str::FromStr::from_str(c.at(1).unwrap()).unwrap());
                 let (_, e) = c.pos(0).unwrap();
                 *pos += e;
                 true
@@ -333,16 +335,16 @@ impl Matcher {
         }
     }
 
-    fn match_numeric_value(&mut self, s: &str, pos: &mut uint, allow_nil: bool) -> bool {
+    fn match_numeric_value(&mut self, s: &str, pos: &mut usize, allow_nil: bool) -> bool {
         let mut re = regex!(r"^([+-]?\d+.\d+(?:[eE][+-]?d+)?|\d+)");
         if allow_nil {
             re = regex!(r"^(NIL|[+-]?\d+.\d+(?:[eE][+-]?d+)?|\d+)");
         }
         match re.captures(s) {
             Some(c) => {
-                self.node.value = match c.at(1) {
+                self.node.value = match c.at(1).unwrap() {
                     "NIL" => Nil,
-                    n => Number(std::str::from_str::<f64>(n).unwrap())
+                    n => Number(std::str::FromStr::from_str(n).unwrap())
                 };
                 let (_, e) = c.pos(0).unwrap();
                 *pos += e;
@@ -352,11 +354,11 @@ impl Matcher {
         }
     }
 
-    fn match_boolean_value(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_boolean_value(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!("^(TRUE|FALSE)");
         match re.captures(s) {
             Some(c) => {
-                self.node.value = match c.at(1) {
+                self.node.value = match c.at(1).unwrap() {
                     "TRUE" => Boolean(true),
                     "FALSE" => Boolean(false),
                     _ => return false
@@ -369,11 +371,11 @@ impl Matcher {
         }
     }
 
-    fn match_string_expression(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_string_expression(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!("^(Type|Logger|Hostname|EnvVersion|Payload|Uuid)");
         match re.captures(s) {
             Some(c) => {
-                self.node.variable = c.at(1).into_string();
+                self.node.variable = c.at(1).unwrap().to_string();
                 let (_, e) = c.pos(0).unwrap();
                 *pos += e;
                 let lpos = *pos;
@@ -393,11 +395,11 @@ impl Matcher {
         }
     }
 
-    fn match_integer_expression(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_integer_expression(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!("^(Timestamp|Severity|Pid)");
         match re.captures(s) {
             Some(c) => {
-                self.node.variable = c.at(1).into_string();
+                self.node.variable = c.at(1).unwrap().to_string();
                 let (_, e) = c.pos(0).unwrap();
                 *pos += e;
                 let lpos = *pos;
@@ -413,18 +415,24 @@ impl Matcher {
         }
     }
 
-    fn match_field_expression(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_field_expression(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!(r"^Fields\[([^]]*?)\](?:\[(\d+)\])?(?:\[(\d+)\])?");
         match re.captures(s) {
             Some(c) => {
-                self.node.variable = c.at(1).into_string();
+                self.node.variable = c.at(1).unwrap().to_string();
                 self.node.is_field = true;
-                self.node.fi = match std::str::from_str::<uint>(c.at(2)) {
-                    Some(u) => u,
+                self.node.fi = match c.at(2) {
+                    Some(u) => match std::str::FromStr::from_str(u) {
+                        Some(i) => i,
+                        None => 0
+                    },
                     None => 0
                 };
-                self.node.ai = match std::str::from_str::<uint>(c.at(3)) {
-                    Some(u) => u,
+                self.node.ai = match c.at(3) {
+                    Some(u) => match std::str::FromStr::from_str(u) {
+                        Some(i) => i,
+                        None => 0
+                    },
                     None => 0
                 };
                 let (_, e) = c.pos(0).unwrap();
@@ -455,11 +463,11 @@ impl Matcher {
         }
     }
 
-    fn match_boolean_expression(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_boolean_expression(&mut self, s: &str, pos: &mut usize) -> bool {
         let re = regex!("^(TRUE|FALSE)");
         match re.captures(s) {
             Some(c) => {
-                self.node.op = match c.at(1) {
+                self.node.op = match c.at(1).unwrap() {
                     "TRUE" => True,
                     "FALSE" => False,
                     _ => return false
@@ -472,7 +480,7 @@ impl Matcher {
         }
     }
 
-    fn match_condition(&mut self, s: &str, pos: &mut uint) -> bool {
+    fn match_condition(&mut self, s: &str, pos: &mut usize) -> bool {
         if self.match_string_expression(s, pos) {
             return true;
         } else if self.match_integer_expression(s, pos) {
@@ -491,10 +499,10 @@ fn evaluate_tree(n: &Box<Node>, m: &pb::HekaMessage) -> bool {
         Some(ref ln) => evaluate_tree(ln, m),
         None => return evaluate_node(n, m)
     };
-    if r == true && n.op as int == Or as int {
+    if r == true && n.op as isize == Or as isize {
         return r; // short circuit
     }
-    if r == false && n.op as int == And as int {
+    if r == false && n.op as isize == And as isize {
         return r; // short circuit
     }
 
@@ -657,7 +665,7 @@ mod test {
     fn add_field_integer(m: &mut pb::HekaMessage, name: &str, val: i64) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_ValueType::INTEGER);
-        f.set_name(name.into_string());
+        f.set_name(name.to_string());
         f.mut_value_integer().push(val);
         if val == 999 {
             f.mut_value_integer().push(1024);
@@ -668,7 +676,7 @@ mod test {
     fn add_field_double(m: &mut pb::HekaMessage, name: &str, val: f64) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_ValueType::DOUBLE);
-        f.set_name(name.into_string());
+        f.set_name(name.to_string());
         f.mut_value_double().push(val);
         m.mut_fields().push(f);
     }
@@ -676,7 +684,7 @@ mod test {
     fn add_field_bool(m: &mut pb::HekaMessage, name: &str, val: bool) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_ValueType::BOOL);
-        f.set_name(name.into_string());
+        f.set_name(name.to_string());
         f.mut_value_bool().push(val);
         m.mut_fields().push(f);
     }
@@ -684,15 +692,15 @@ mod test {
     fn add_field_string(m: &mut pb::HekaMessage, name: &str, val: &str) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_ValueType::STRING);
-        f.set_name(name.into_string());
-        f.mut_value_string().push(val.into_string());
+        f.set_name(name.to_string());
+        f.mut_value_string().push(val.to_string());
         m.mut_fields().push(f);
     }
 
     fn add_field_bytes(m: &mut pb::HekaMessage, name: &str, val: Vec<u8>) {
         let mut f = pb::Field::new();
         f.set_value_type(pb::Field_ValueType::STRING);
-        f.set_name(name.into_string());
+        f.set_name(name.to_string());
         f.mut_value_bytes().push(val);
         m.mut_fields().push(f);
     }
@@ -705,13 +713,13 @@ mod test {
         };
         msg.set_uuid(u.as_bytes().to_vec());
         msg.set_timestamp(9000000000);
-        msg.set_field_type("TEST".into_string());
+        msg.set_field_type("TEST".to_string());
         msg.set_severity(6);
-        msg.set_payload("Test Payload".into_string());
-        msg.set_env_version("0.8".into_string());
+        msg.set_payload("Test Payload".to_string());
+        msg.set_env_version("0.8".to_string());
         msg.set_pid(1234);
-        msg.set_logger("UnitTest".into_string());
-        msg.set_hostname("example.com".into_string());
+        msg.set_logger("UnitTest".to_string());
+        msg.set_hostname("example.com".to_string());
         add_field_string(&mut msg, "foo", "bar");
         add_field_integer(&mut msg, "number", 64);
         add_field_bytes(&mut msg, "data", b"data".to_vec());

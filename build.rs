@@ -2,6 +2,7 @@
 // Right now this is more or less a literal translation of build.sh.
 // Something needs to be done about protobuf code generation (which itself has
 // a rust dependency).
+#![allow(unstable)]
 
 use std::io::Command;
 use std::io::process::ProcessExit;

@@ -8,7 +8,7 @@
 use protobuf::Message as Message_imported_for_functions;
 use protobuf::ProtobufEnum as ProtobufEnum_imported_for_functions;
 
-#[deriving(Clone,Default)]
+#[derive(Clone,Default)]
 pub struct Header {
     message_length: ::std::option::Option<u32>,
     hmac_hash_function: ::std::option::Option<Header_HmacHashFunction>,
@@ -32,10 +32,10 @@ impl Header {
         unsafe {
             instance.get(|| {
                 Header {
-                    message_length: ::std::option::None,
-                    hmac_hash_function: ::std::option::None,
+                    message_length: ::std::option::Option::None,
+                    hmac_hash_function: ::std::option::Option::None,
                     hmac_signer: ::protobuf::SingularField::none(),
-                    hmac_key_version: ::std::option::None,
+                    hmac_key_version: ::std::option::Option::None,
                     hmac: ::protobuf::SingularField::none(),
                     unknown_fields: ::protobuf::UnknownFields::new(),
                     cached_size: ::std::cell::Cell::new(0),
@@ -47,7 +47,7 @@ impl Header {
     // required uint32 message_length = 1;
 
     pub fn clear_message_length(&mut self) {
-        self.message_length = ::std::option::None;
+        self.message_length = ::std::option::Option::None;
     }
 
     pub fn has_message_length(&self) -> bool {
@@ -56,7 +56,7 @@ impl Header {
 
     // Param is passed by value, moved
     pub fn set_message_length(&mut self, v: u32) {
-        self.message_length = ::std::option::Some(v);
+        self.message_length = ::std::option::Option::Some(v);
     }
 
     pub fn get_message_length<'a>(&self) -> u32 {
@@ -66,7 +66,7 @@ impl Header {
     // optional .message.Header.HmacHashFunction hmac_hash_function = 3;
 
     pub fn clear_hmac_hash_function(&mut self) {
-        self.hmac_hash_function = ::std::option::None;
+        self.hmac_hash_function = ::std::option::Option::None;
     }
 
     pub fn has_hmac_hash_function(&self) -> bool {
@@ -75,7 +75,7 @@ impl Header {
 
     // Param is passed by value, moved
     pub fn set_hmac_hash_function(&mut self, v: Header_HmacHashFunction) {
-        self.hmac_hash_function = ::std::option::Some(v);
+        self.hmac_hash_function = ::std::option::Option::Some(v);
     }
 
     pub fn get_hmac_hash_function<'a>(&self) -> Header_HmacHashFunction {
@@ -121,7 +121,7 @@ impl Header {
     // optional uint32 hmac_key_version = 5;
 
     pub fn clear_hmac_key_version(&mut self) {
-        self.hmac_key_version = ::std::option::None;
+        self.hmac_key_version = ::std::option::Option::None;
     }
 
     pub fn has_hmac_key_version(&self) -> bool {
@@ -130,7 +130,7 @@ impl Header {
 
     // Param is passed by value, moved
     pub fn set_hmac_key_version(&mut self, v: u32) {
-        self.hmac_key_version = ::std::option::Some(v);
+        self.hmac_key_version = ::std::option::Option::Some(v);
     }
 
     pub fn get_hmac_key_version<'a>(&self) -> u32 {
@@ -175,10 +175,6 @@ impl Header {
 }
 
 impl ::protobuf::Message for Header {
-    fn new() -> Header {
-        Header::new()
-    }
-
     fn is_initialized(&self) -> bool {
         if self.message_length.is_none() {
             return false;
@@ -192,35 +188,35 @@ impl ::protobuf::Message for Header {
             match field_number {
                 1 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_uint32());
-                    self.message_length = ::std::option::Some(tmp);
+                    self.message_length = ::std::option::Option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_enum());
-                    self.hmac_hash_function = ::std::option::Some(tmp);
+                    self.hmac_hash_function = ::std::option::Option::Some(tmp);
                 },
                 4 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.hmac_signer.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 5 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_uint32());
-                    self.hmac_key_version = ::std::option::Some(tmp);
+                    self.hmac_key_version = ::std::option::Option::Some(tmp);
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.hmac.set_default();
                     try!(is.read_bytes_into(tmp))
@@ -231,7 +227,7 @@ impl ::protobuf::Message for Header {
                 },
             };
         }
-        ::std::result::Ok(())
+        ::std::result::Result::Ok(())
     }
 
     // Compute sizes of nested messages
@@ -274,7 +270,7 @@ impl ::protobuf::Message for Header {
             try!(os.write_bytes(6, v.as_slice()));
         };
         try!(os.write_unknown_fields(self.get_unknown_fields()));
-        ::std::result::Ok(())
+        ::std::result::Result::Ok(())
     }
 
     fn get_cached_size(&self) -> u32 {
@@ -287,6 +283,20 @@ impl ::protobuf::Message for Header {
 
     fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
+    }
+
+    fn type_id(&self) -> ::std::intrinsics::TypeId {
+        ::std::intrinsics::TypeId::of::<Header>()
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        ::protobuf::MessageStatic::descriptor_static(None::<Self>)
+    }
+}
+
+impl ::protobuf::MessageStatic for Header {
+    fn new() -> Header {
+        Header::new()
     }
 
     #[allow(unused_unsafe,unused_mut)]
@@ -331,10 +341,6 @@ impl ::protobuf::Message for Header {
             })
         }
     }
-
-    fn type_id(&self) -> ::std::intrinsics::TypeId {
-        ::std::intrinsics::TypeId::of::<Header>()
-    }
 }
 
 impl ::protobuf::Clear for Header {
@@ -361,16 +367,15 @@ impl ::std::cmp::PartialEq for Header {
 
 impl ::std::fmt::Show for Header {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        self.fmt_impl(f)
+        ::protobuf::text_format::fmt(self, f)
     }
 }
 
-#[deriving(Clone,PartialEq,Eq,Show)]
+#[derive(Clone,PartialEq,Eq,Show)]
 pub enum Header_HmacHashFunction {
     MD5 = 0,
     SHA1 = 1,
 }
-
 
 impl ::protobuf::ProtobufEnum for Header_HmacHashFunction {
     fn value(&self) -> i32 {
@@ -379,9 +384,9 @@ impl ::protobuf::ProtobufEnum for Header_HmacHashFunction {
 
     fn from_i32(value: i32) -> ::std::option::Option<Header_HmacHashFunction> {
         match value {
-            0 => ::std::option::Some(Header_HmacHashFunction::MD5),
-            1 => ::std::option::Some(Header_HmacHashFunction::SHA1),
-            _ => ::std::option::None
+            0 => ::std::option::Option::Some(Header_HmacHashFunction::MD5),
+            1 => ::std::option::Option::Some(Header_HmacHashFunction::SHA1),
+            _ => ::std::option::Option::None
         }
     }
 
@@ -398,7 +403,10 @@ impl ::protobuf::ProtobufEnum for Header_HmacHashFunction {
     }
 }
 
-#[deriving(Clone,Default)]
+impl ::std::marker::Copy for Header_HmacHashFunction {
+}
+
+#[derive(Clone,Default)]
 pub struct Field {
     name: ::protobuf::SingularField<::std::string::String>,
     value_type: ::std::option::Option<Field_ValueType>,
@@ -426,7 +434,7 @@ impl Field {
             instance.get(|| {
                 Field {
                     name: ::protobuf::SingularField::none(),
-                    value_type: ::std::option::None,
+                    value_type: ::std::option::Option::None,
                     representation: ::protobuf::SingularField::none(),
                     value_string: ::protobuf::RepeatedField::new(),
                     value_bytes: ::protobuf::RepeatedField::new(),
@@ -479,7 +487,7 @@ impl Field {
     // optional .message.Field.ValueType value_type = 2;
 
     pub fn clear_value_type(&mut self) {
-        self.value_type = ::std::option::None;
+        self.value_type = ::std::option::Option::None;
     }
 
     pub fn has_value_type(&self) -> bool {
@@ -488,7 +496,7 @@ impl Field {
 
     // Param is passed by value, moved
     pub fn set_value_type(&mut self, v: Field_ValueType) {
-        self.value_type = ::std::option::Some(v);
+        self.value_type = ::std::option::Option::Some(v);
     }
 
     pub fn get_value_type<'a>(&self) -> Field_ValueType {
@@ -661,10 +669,6 @@ impl Field {
 }
 
 impl ::protobuf::Message for Field {
-    fn new() -> Field {
-        Field::new()
-    }
-
     fn is_initialized(&self) -> bool {
         if self.name.is_none() {
             return false;
@@ -678,77 +682,39 @@ impl ::protobuf::Message for Field {
             match field_number {
                 1 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.name.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 2 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_enum());
-                    self.value_type = ::std::option::Some(tmp);
+                    self.value_type = ::std::option::Option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.representation.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 4 => {
-                    if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                    };
-                    let tmp = self.value_string.push_default();
-                    try!(is.read_string_into(tmp))
+                    try!(::protobuf::rt::read_repeated_string_into(wire_type, is, &mut self.value_string));
                 },
                 5 => {
-                    if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                    };
-                    let tmp = self.value_bytes.push_default();
-                    try!(is.read_bytes_into(tmp))
+                    try!(::protobuf::rt::read_repeated_bytes_into(wire_type, is, &mut self.value_bytes));
                 },
                 6 => {
-                    match wire_type {
-                        ::protobuf::wire_format::WireTypeLengthDelimited => {
-                            try!(is.read_repeated_packed_int64_into(&mut self.value_integer));
-                        },
-                        ::protobuf::wire_format::WireTypeVarint => {
-                            self.value_integer.push(try!(is.read_int64()));
-                        },
-                        _ => {
-                            return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                        },
-                    };
+                    try!(::protobuf::rt::read_repeated_int64_into(wire_type, is, &mut self.value_integer));
                 },
                 7 => {
-                    match wire_type {
-                        ::protobuf::wire_format::WireTypeLengthDelimited => {
-                            try!(is.read_repeated_packed_double_into(&mut self.value_double));
-                        },
-                        ::protobuf::wire_format::WireTypeFixed64 => {
-                            self.value_double.push(try!(is.read_double()));
-                        },
-                        _ => {
-                            return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                        },
-                    };
+                    try!(::protobuf::rt::read_repeated_double_into(wire_type, is, &mut self.value_double));
                 },
                 8 => {
-                    match wire_type {
-                        ::protobuf::wire_format::WireTypeLengthDelimited => {
-                            try!(is.read_repeated_packed_bool_into(&mut self.value_bool));
-                        },
-                        ::protobuf::wire_format::WireTypeVarint => {
-                            self.value_bool.push(try!(is.read_bool()));
-                        },
-                        _ => {
-                            return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                        },
-                    };
+                    try!(::protobuf::rt::read_repeated_bool_into(wire_type, is, &mut self.value_bool));
                 },
                 _ => {
                     let unknown = try!(is.read_unknown(wire_type));
@@ -756,7 +722,7 @@ impl ::protobuf::Message for Field {
                 },
             };
         }
-        ::std::result::Ok(())
+        ::std::result::Result::Ok(())
     }
 
     // Compute sizes of nested messages
@@ -832,7 +798,7 @@ impl ::protobuf::Message for Field {
             };
         };
         try!(os.write_unknown_fields(self.get_unknown_fields()));
-        ::std::result::Ok(())
+        ::std::result::Result::Ok(())
     }
 
     fn get_cached_size(&self) -> u32 {
@@ -845,6 +811,20 @@ impl ::protobuf::Message for Field {
 
     fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
+    }
+
+    fn type_id(&self) -> ::std::intrinsics::TypeId {
+        ::std::intrinsics::TypeId::of::<Field>()
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        ::protobuf::MessageStatic::descriptor_static(None::<Self>)
+    }
+}
+
+impl ::protobuf::MessageStatic for Field {
+    fn new() -> Field {
+        Field::new()
     }
 
     #[allow(unused_unsafe,unused_mut)]
@@ -899,10 +879,6 @@ impl ::protobuf::Message for Field {
             })
         }
     }
-
-    fn type_id(&self) -> ::std::intrinsics::TypeId {
-        ::std::intrinsics::TypeId::of::<Field>()
-    }
 }
 
 impl ::protobuf::Clear for Field {
@@ -935,11 +911,11 @@ impl ::std::cmp::PartialEq for Field {
 
 impl ::std::fmt::Show for Field {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        self.fmt_impl(f)
+        ::protobuf::text_format::fmt(self, f)
     }
 }
 
-#[deriving(Clone,PartialEq,Eq,Show)]
+#[derive(Clone,PartialEq,Eq,Show)]
 pub enum Field_ValueType {
     STRING = 0,
     BYTES = 1,
@@ -948,7 +924,6 @@ pub enum Field_ValueType {
     BOOL = 4,
 }
 
-
 impl ::protobuf::ProtobufEnum for Field_ValueType {
     fn value(&self) -> i32 {
         *self as i32
@@ -956,12 +931,12 @@ impl ::protobuf::ProtobufEnum for Field_ValueType {
 
     fn from_i32(value: i32) -> ::std::option::Option<Field_ValueType> {
         match value {
-            0 => ::std::option::Some(Field_ValueType::STRING),
-            1 => ::std::option::Some(Field_ValueType::BYTES),
-            2 => ::std::option::Some(Field_ValueType::INTEGER),
-            3 => ::std::option::Some(Field_ValueType::DOUBLE),
-            4 => ::std::option::Some(Field_ValueType::BOOL),
-            _ => ::std::option::None
+            0 => ::std::option::Option::Some(Field_ValueType::STRING),
+            1 => ::std::option::Option::Some(Field_ValueType::BYTES),
+            2 => ::std::option::Option::Some(Field_ValueType::INTEGER),
+            3 => ::std::option::Option::Some(Field_ValueType::DOUBLE),
+            4 => ::std::option::Option::Some(Field_ValueType::BOOL),
+            _ => ::std::option::Option::None
         }
     }
 
@@ -978,7 +953,10 @@ impl ::protobuf::ProtobufEnum for Field_ValueType {
     }
 }
 
-#[deriving(Clone,Default)]
+impl ::std::marker::Copy for Field_ValueType {
+}
+
+#[derive(Clone,Default)]
 pub struct HekaMessage {
     uuid: ::protobuf::SingularField<::std::vec::Vec<u8>>,
     timestamp: ::std::option::Option<i64>,
@@ -1008,13 +986,13 @@ impl HekaMessage {
             instance.get(|| {
                 HekaMessage {
                     uuid: ::protobuf::SingularField::none(),
-                    timestamp: ::std::option::None,
+                    timestamp: ::std::option::Option::None,
                     field_type: ::protobuf::SingularField::none(),
                     logger: ::protobuf::SingularField::none(),
-                    severity: ::std::option::None,
+                    severity: ::std::option::Option::None,
                     payload: ::protobuf::SingularField::none(),
                     env_version: ::protobuf::SingularField::none(),
-                    pid: ::std::option::None,
+                    pid: ::std::option::Option::None,
                     hostname: ::protobuf::SingularField::none(),
                     fields: ::protobuf::RepeatedField::new(),
                     unknown_fields: ::protobuf::UnknownFields::new(),
@@ -1063,7 +1041,7 @@ impl HekaMessage {
     // required int64 timestamp = 2;
 
     pub fn clear_timestamp(&mut self) {
-        self.timestamp = ::std::option::None;
+        self.timestamp = ::std::option::Option::None;
     }
 
     pub fn has_timestamp(&self) -> bool {
@@ -1072,7 +1050,7 @@ impl HekaMessage {
 
     // Param is passed by value, moved
     pub fn set_timestamp(&mut self, v: i64) {
-        self.timestamp = ::std::option::Some(v);
+        self.timestamp = ::std::option::Option::Some(v);
     }
 
     pub fn get_timestamp<'a>(&self) -> i64 {
@@ -1154,7 +1132,7 @@ impl HekaMessage {
     // optional int32 severity = 5;
 
     pub fn clear_severity(&mut self) {
-        self.severity = ::std::option::None;
+        self.severity = ::std::option::Option::None;
     }
 
     pub fn has_severity(&self) -> bool {
@@ -1163,7 +1141,7 @@ impl HekaMessage {
 
     // Param is passed by value, moved
     pub fn set_severity(&mut self, v: i32) {
-        self.severity = ::std::option::Some(v);
+        self.severity = ::std::option::Option::Some(v);
     }
 
     pub fn get_severity<'a>(&self) -> i32 {
@@ -1245,7 +1223,7 @@ impl HekaMessage {
     // optional int32 pid = 8;
 
     pub fn clear_pid(&mut self) {
-        self.pid = ::std::option::None;
+        self.pid = ::std::option::Option::None;
     }
 
     pub fn has_pid(&self) -> bool {
@@ -1254,7 +1232,7 @@ impl HekaMessage {
 
     // Param is passed by value, moved
     pub fn set_pid(&mut self, v: i32) {
-        self.pid = ::std::option::Some(v);
+        self.pid = ::std::option::Option::Some(v);
     }
 
     pub fn get_pid<'a>(&self) -> i32 {
@@ -1324,10 +1302,6 @@ impl HekaMessage {
 }
 
 impl ::protobuf::Message for HekaMessage {
-    fn new() -> HekaMessage {
-        HekaMessage::new()
-    }
-
     fn is_initialized(&self) -> bool {
         if self.uuid.is_none() {
             return false;
@@ -1344,73 +1318,69 @@ impl ::protobuf::Message for HekaMessage {
             match field_number {
                 1 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.uuid.set_default();
                     try!(is.read_bytes_into(tmp))
                 },
                 2 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_int64());
-                    self.timestamp = ::std::option::Some(tmp);
+                    self.timestamp = ::std::option::Option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.field_type.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 4 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.logger.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 5 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_int32());
-                    self.severity = ::std::option::Some(tmp);
+                    self.severity = ::std::option::Option::Some(tmp);
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.payload.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 7 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.env_version.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 8 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = try!(is.read_int32());
-                    self.pid = ::std::option::Some(tmp);
+                    self.pid = ::std::option::Option::Some(tmp);
                 },
                 9 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
+                        return ::std::result::Result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
                     };
                     let tmp = self.hostname.set_default();
                     try!(is.read_string_into(tmp))
                 },
                 10 => {
-                    if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
-                        return ::std::result::Err(::protobuf::ProtobufError::WireError("unexpected wire type".to_string()));
-                    };
-                    let tmp = self.fields.push_default();
-                    try!(is.merge_message(tmp))
+                    try!(::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.fields));
                 },
                 _ => {
                     let unknown = try!(is.read_unknown(wire_type));
@@ -1418,7 +1388,7 @@ impl ::protobuf::Message for HekaMessage {
                 },
             };
         }
-        ::std::result::Ok(())
+        ::std::result::Result::Ok(())
     }
 
     // Compute sizes of nested messages
@@ -1494,7 +1464,7 @@ impl ::protobuf::Message for HekaMessage {
             try!(v.write_to_with_cached_sizes(os));
         };
         try!(os.write_unknown_fields(self.get_unknown_fields()));
-        ::std::result::Ok(())
+        ::std::result::Result::Ok(())
     }
 
     fn get_cached_size(&self) -> u32 {
@@ -1507,6 +1477,20 @@ impl ::protobuf::Message for HekaMessage {
 
     fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
+    }
+
+    fn type_id(&self) -> ::std::intrinsics::TypeId {
+        ::std::intrinsics::TypeId::of::<HekaMessage>()
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        ::protobuf::MessageStatic::descriptor_static(None::<Self>)
+    }
+}
+
+impl ::protobuf::MessageStatic for HekaMessage {
+    fn new() -> HekaMessage {
+        HekaMessage::new()
     }
 
     #[allow(unused_unsafe,unused_mut)]
@@ -1575,10 +1559,6 @@ impl ::protobuf::Message for HekaMessage {
             })
         }
     }
-
-    fn type_id(&self) -> ::std::intrinsics::TypeId {
-        ::std::intrinsics::TypeId::of::<HekaMessage>()
-    }
 }
 
 impl ::protobuf::Clear for HekaMessage {
@@ -1615,7 +1595,7 @@ impl ::std::cmp::PartialEq for HekaMessage {
 
 impl ::std::fmt::Show for HekaMessage {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        self.fmt_impl(f)
+        ::protobuf::text_format::fmt(self, f)
     }
 }
 

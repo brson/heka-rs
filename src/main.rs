@@ -1,3 +1,5 @@
+#![allow(unstable)]
+
 extern crate protobuf; // depend on rust-protobuf runtime
 extern crate getopts;
 extern crate heka;
@@ -49,7 +51,7 @@ fn main() {
 
     let m = match matches.opt_str("m") {
         Some(m) => m,
-        None => "TRUE".into_string(),
+        None => "TRUE".to_string(),
     };
     let mm = match message::matcher::Matcher::new(m.as_slice()) {
         Ok(m) => m,
@@ -67,9 +69,9 @@ fn main() {
         panic!("sandbox_init failed {} {}", r, lsb.last_error());
     }
 
-    let mut count = 0u;
-    let mut match_count = 0u;
-    let mut msg = Some(box pb::HekaMessage::new());
+    let mut count = 0us;
+    let mut match_count = 0us;
+    let mut msg = Some(Box::new(pb::HekaMessage::new()));
     loop {
         match hps.read_next() {
             Ok(m) => {

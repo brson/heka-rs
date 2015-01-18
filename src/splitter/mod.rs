@@ -15,7 +15,7 @@ static RECORD_SEP: u8 = 0x1e;
 //    // corruption skipped which also means the record could be empty even if
 //    // bytes were read. 'record' will remain valid until the next call to split.
 //    // The bytes read can be non zero even when there is an IoError.
-//    fn read_next<'a>(&'a mut self) -> (uint, IoResult<Option<&'a [u8]>>);
+//    fn read_next<'a>(&'a mut self) -> (usize, IoResult<Option<&'a [u8]>>);
 //
 //    // Reads the remainder of the parse buffer.  This is the
 //    // only way to fetch the last record in a stream that specifies a start of
@@ -30,16 +30,16 @@ static RECORD_SEP: u8 = 0x1e;
 
 pub struct HekaProtobufStream<R> {
     reader: R,
-    cap: uint,
+    cap: usize,
     buf: Vec<u8>,
-    scan_pos: uint,
-    read_pos: uint,
+    scan_pos: usize,
+    read_pos: usize,
     offset: u64,
     header: pb::Header,
 }
 
 impl<R: Reader> HekaProtobufStream<R> {
-    pub fn new(reader: R, cap: uint) -> HekaProtobufStream<R> {
+    pub fn new(reader: R, cap: usize) -> HekaProtobufStream<R> {
         let mut buf = Vec::with_capacity(cap);
         unsafe { buf.set_len(cap); }
         HekaProtobufStream {
@@ -54,7 +54,7 @@ impl<R: Reader> HekaProtobufStream<R> {
     }
 
     pub fn read_next<'a>(&'a mut self) -> IoResult<Option<&'a [u8]>> {
-        let required = 258u + self.header.get_message_length() as uint;
+        let required = 258us + self.header.get_message_length() as usize;
         match self.read(required) {
             Ok(_) => self.find_record(),
             Err(e) => Err(e)
@@ -76,7 +76,7 @@ impl<R: Reader> HekaProtobufStream<R> {
         Ok(self.offset)
     }
 
-    fn decode_header(&mut self, header_end: uint) -> bool {
+    fn decode_header(&mut self, header_end: usize) -> bool {
         if self.buf[header_end-1] != 0x1f {
             return false;
         }
@@ -89,7 +89,7 @@ impl<R: Reader> HekaProtobufStream<R> {
         false
     }
 
-    fn read(&mut self, required: uint) -> IoResult<uint> {
+    fn read(&mut self, required: usize) -> IoResult<usize> {
         if required > self.cap {
             self.offset += (self.read_pos - self.scan_pos) as u64;
             self.read_pos = 0;
@@ -136,7 +136,7 @@ impl<R: Reader> HekaProtobufStream<R> {
                 return Ok(None);
             }
 
-            let header_length = self.buf[self.scan_pos + 1] as uint;
+            let header_length = self.buf[self.scan_pos + 1] as usize;
             let header_end = self.scan_pos + header_length + 3;
             if header_end > self.read_pos {
                 return Ok(None);
@@ -144,7 +144,7 @@ impl<R: Reader> HekaProtobufStream<R> {
 
             if self.header.has_message_length()
             || self.decode_header(header_end) {
-                let message_end = header_end + self.header.get_message_length() as uint;
+                let message_end = header_end + self.header.get_message_length() as usize;
                 if message_end > self.read_pos {
                     return Ok(None);
                 }

@@ -26,3 +26,7 @@ git = "https://github.com/stepancheg/rust-protobuf"
 
 [dependencies.uuid]
 git = "https://github.com/rust-lang/uuid"
+
+[dependencies.regex]
+
+[dependencies.regex_macros]

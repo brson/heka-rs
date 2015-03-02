@@ -285,8 +285,8 @@ impl ::protobuf::Message for Header {
         &mut self.unknown_fields
     }
 
-    fn type_id(&self) -> ::std::intrinsics::TypeId {
-        ::std::intrinsics::TypeId::of::<Header>()
+    fn type_id(&self) -> ::std::any::TypeId {
+        ::std::any::TypeId::of::<Header>()
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -365,13 +365,13 @@ impl ::std::cmp::PartialEq for Header {
     }
 }
 
-impl ::std::fmt::Show for Header {
+impl ::std::fmt::Debug for Header {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
 }
 
-#[derive(Clone,PartialEq,Eq,Show)]
+#[derive(Clone,PartialEq,Eq,Debug)]
 pub enum Header_HmacHashFunction {
     MD5 = 0,
     SHA1 = 1,
@@ -813,8 +813,8 @@ impl ::protobuf::Message for Field {
         &mut self.unknown_fields
     }
 
-    fn type_id(&self) -> ::std::intrinsics::TypeId {
-        ::std::intrinsics::TypeId::of::<Field>()
+    fn type_id(&self) -> ::std::any::TypeId {
+        ::std::any::TypeId::of::<Field>()
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -909,13 +909,13 @@ impl ::std::cmp::PartialEq for Field {
     }
 }
 
-impl ::std::fmt::Show for Field {
+impl ::std::fmt::Debug for Field {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
 }
 
-#[derive(Clone,PartialEq,Eq,Show)]
+#[derive(Clone,PartialEq,Eq,Debug)]
 pub enum Field_ValueType {
     STRING = 0,
     BYTES = 1,
@@ -1479,8 +1479,8 @@ impl ::protobuf::Message for HekaMessage {
         &mut self.unknown_fields
     }
 
-    fn type_id(&self) -> ::std::intrinsics::TypeId {
-        ::std::intrinsics::TypeId::of::<HekaMessage>()
+    fn type_id(&self) -> ::std::any::TypeId {
+        ::std::any::TypeId::of::<HekaMessage>()
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -1593,7 +1593,7 @@ impl ::std::cmp::PartialEq for HekaMessage {
     }
 }
 
-impl ::std::fmt::Show for HekaMessage {
+impl ::std::fmt::Debug for HekaMessage {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }

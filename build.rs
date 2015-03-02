@@ -4,12 +4,12 @@
 // a rust dependency).
 #![allow(unstable)]
 
-use std::io::Command;
-use std::io::process::ProcessExit;
+use std::old_io::Command;
+use std::old_io::process::ProcessExit;
 use std::os;
-use std::path::Path;
+use std::old_path::Path;
 // original script is *NIX-only
-use std::path::posix::SEP;
+use std::old_path::posix::SEP;
 
 fn main() {
     let out_dir = os::getenv("OUT_DIR").unwrap();

@@ -1,6 +1,6 @@
 use regex::Regex;
 use std;
-use std::collections::{DList};
+use std::collections::{LinkedList};
 use message;
 use message::pb;
 use uuid::Uuid;
@@ -58,8 +58,8 @@ pub struct Matcher {
     expect: ExpectNode,
     node: Box<Node>,
     msg: String,
-    stack: DList<Box<Node>>,
-    output: DList<Box<Node>>,
+    stack: LinkedList<Box<Node>>,
+    output: LinkedList<Box<Node>>,
 }
 
 pub struct Error {
@@ -89,8 +89,8 @@ impl Matcher {
             expect: Conditional,
             node: Box::new(Node::new()),
             msg: "Failed Parsing".to_string(),
-            stack: DList::new(),
-            output: DList::new(),
+            stack: LinkedList::new(),
+            output: LinkedList::new(),
         };
 
         let b = s.as_bytes();
@@ -423,15 +423,15 @@ impl Matcher {
                 self.node.is_field = true;
                 self.node.fi = match c.at(2) {
                     Some(u) => match std::str::FromStr::from_str(u) {
-                        Some(i) => i,
-                        None => 0
+                        Ok(i) => i,
+                        Err(e) => 0
                     },
                     None => 0
                 };
                 self.node.ai = match c.at(3) {
                     Some(u) => match std::str::FromStr::from_str(u) {
-                        Some(i) => i,
-                        None => 0
+                        Ok(i) => i,
+                        Err(e) => 0
                     },
                     None => 0
                 };

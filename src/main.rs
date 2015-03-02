@@ -4,10 +4,10 @@ extern crate protobuf; // depend on rust-protobuf runtime
 extern crate getopts;
 extern crate heka;
 
-use std::path::Path;
-use std::io::fs::PathExtensions;
-use std::io::fs::File;
-use std::io::BufReader;
+use std::old_path::Path;
+use std::old_io::fs::PathExtensions;
+use std::old_io::fs::File;
+use std::old_io::BufReader;
 use std::os;
 use getopts::{optopt,optflag,getopts,OptGroup};
 
@@ -101,8 +101,8 @@ fn main() {
             }
             Err(e) => {
                 match e.kind {
-                    std::io::EndOfFile => { break; }
-                    std::io::OtherIoError => { println!("non-fatal read error: {}", e); }
+                    std::old_io::EndOfFile => { break; }
+                    std::old_io::OtherIoError => { println!("non-fatal read error: {}", e); }
                     _ => {
                         println!("read error: {}", e);
                         break;

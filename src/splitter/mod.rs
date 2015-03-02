@@ -1,6 +1,6 @@
 extern crate rlibc;
 
-use std::io::{BufReader, IoResult, IoError, OtherIoError};
+use std::old_io::{BufReader, IoResult, IoError, OtherIoError};
 use std::vec::Vec;
 use protobuf::{CodedInputStream, Message};
 use protobuf::clear::Clear;
